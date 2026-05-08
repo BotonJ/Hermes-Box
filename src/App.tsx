@@ -161,18 +161,23 @@ export function App() {
         <TabBar
           tabs={tabs}
           activeId={activeTabId}
-          settingsActive={false}
           onSwitch={handleTabSwitch}
           onClose={handleTabClose}
           onAdd={() => setView("selector")}
-          onSettings={() => {}}
-          onSettingsClose={() => {}}
         />
       )}
-      {view === "welcome" && <Welcome onContinue={handleContinue} />}
-      {view === "selector" && <CLISelector results={cliResults} onSelect={handleSelect} />}
+      {view === "welcome" && (
+        <div style="flex: 1; min-height: 0; overflow-y: auto;">
+          <Welcome onContinue={handleContinue} />
+        </div>
+      )}
+      {view === "selector" && (
+        <div style="flex: 1; min-height: 0; overflow-y: auto;">
+          <CLISelector results={cliResults} onSelect={handleSelect} />
+        </div>
+      )}
       {view === "terminal" && showTabs && (
-        <div style="flex: 1; overflow: hidden; position: relative;">
+        <div style="flex: 1; min-height: 0; overflow: hidden; position: relative; background: var(--terminal-bg);">
           {tabs.map((tab) => (
             <TerminalView
               key={tab.id}
