@@ -1,12 +1,4 @@
-:root {
-  --canvas: #1a1a2e;
-  --text-primary: #e0e0e0;
-  --terminal-bg: #000;
-  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-family: var(--font-ui);
-  color: var(--text-primary);
-  background-color: var(--canvas);
-}
+/* === Design Token System (Dark/Obsidian) === */
 
 * {
   margin: 0;
@@ -14,12 +6,200 @@
   box-sizing: border-box;
 }
 
-body {
-  overflow: hidden;
+:root {
+  /* --- Surface colors --- */
+  --canvas: #0a0b0e;
+  --surface-base: #101112;
+  --surface-elevated: #18191c;
+  --surface-card: #1f2024;
+  --surface-hover: #27282d;
+  --surface-active: #2f3035;
+
+  /* --- Text colors --- */
+  --text-primary: #f5f5f7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #6b6b76;
+
+  /* --- Semantic colors --- */
+  --accent: #5596ff;
+  --accent-hover: #74abff;
+  --accent-muted: rgba(85, 150, 255, 0.15);
+  --accent-subtle: rgba(85, 150, 255, 0.08);
+
+  --danger: #ff5c57;
+  --danger-hover: #ff7b77;
+  --danger-muted: rgba(255, 92, 87, 0.15);
+
+  --success: #5fc992;
+  --success-muted: rgba(95, 201, 146, 0.15);
+
+  --warning: #ffbc33;
+  --warning-muted: rgba(255, 188, 51, 0.15);
+
+  /* --- Border colors --- */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-accent: rgba(85, 150, 255, 0.3);
+
+  /* --- Terminal --- */
+  --terminal-bg: #0d0e12;
+  --terminal-cursor: #5596ff;
+  --terminal-selection: rgba(85, 150, 255, 0.25);
+
+  /* --- Typography --- */
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-mono: "GeistMono", "SF Mono", "Fira Code", Menlo, monospace;
+
+  --text-display: 28px;
+  --text-heading: 20px;
+  --text-title: 16px;
+  --text-body: 14px;
+  --text-caption: 12px;
+  --text-mono: 13px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-normal: 0;
+  --tracking-body: 0.2px;
+  --tracking-tight: -0.01em;
+
+  /* --- Border radius --- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+
+  /* --- Spacing --- */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* --- Shadows --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(85, 150, 255, 0.15);
+
+  /* --- Transitions --- */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.2s ease;
+
+  /* --- Legacy aliases --- */
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+  --border-radius: var(--radius-lg);
 }
 
+/* === Light theme tokens (macOS Grass) === */
+:root[data-theme="light"] {
+  --canvas: #3a5f3a;
+  --surface-base: #426942;
+  --surface-elevated: #4b734b;
+  --surface-card: #547d54;
+  --surface-hover: #5d875d;
+  --surface-active: #668f66;
+
+  --text-primary: #f4f4f4;
+  --text-secondary: #c0d4b8;
+  --text-muted: #8aab86;
+
+  --accent: #c8a900;
+  --accent-hover: #fce94f;
+  --accent-muted: rgba(200, 169, 0, 0.2);
+  --accent-subtle: rgba(200, 169, 0, 0.1);
+
+  --danger: #ef2929;
+  --danger-hover: #cc241d;
+  --danger-muted: rgba(239, 41, 41, 0.15);
+
+  --success: #8ae234;
+  --success-muted: rgba(138, 226, 52, 0.15);
+
+  --warning: #fce94f;
+  --warning-muted: rgba(252, 233, 79, 0.15);
+
+  --border: rgba(0, 0, 0, 0.12);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-accent: rgba(200, 169, 0, 0.4);
+
+  --terminal-bg: #487147;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(200, 169, 0, 0.15);
+
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+}
+
+/* === Global styles === */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-body);
+  background: var(--canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === Custom scrollbar === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* === Selection === */
+::selection {
+  background: var(--accent-muted);
+  color: var(--text-primary);
+}
+
+/* === Light theme scrollbar === */
+:root[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* === App layout === */
 .app {
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   display: flex;
   flex-direction: column;
