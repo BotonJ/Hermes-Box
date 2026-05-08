@@ -5,6 +5,11 @@ const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   plugins: [preact()],
+  test: {
+    globals: true,
+    environment: "jsdom",
+    exclude: ["**/node_modules/**", "**/.claude/**"],
+  },
   clearScreen: false,
   server: {
     port: 5173,
