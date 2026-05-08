@@ -172,7 +172,7 @@ export function App() {
       {view === "welcome" && <Welcome onContinue={handleContinue} />}
       {view === "selector" && <CLISelector results={cliResults} onSelect={handleSelect} />}
       {view === "terminal" && showTabs && (
-        <div style="flex: 1; overflow: hidden;">
+        <div style="flex: 1; overflow: hidden; position: relative;">
           {tabs.map((tab) => (
             <TerminalView
               key={tab.id}
