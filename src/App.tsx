@@ -171,7 +171,7 @@ export function App() {
       )}
       {view === "welcome" && <Welcome onContinue={handleContinue} />}
       {view === "selector" && <CLISelector results={cliResults} onSelect={handleSelect} />}
-      {showTabs && (
+      {view === "terminal" && showTabs && (
         <div style="flex: 1; overflow: hidden;">
           {tabs.map((tab) => (
             <TerminalView
@@ -180,7 +180,7 @@ export function App() {
               shellArgs={tab.shellArgs}
               env={tab.env}
               command={tab.command}
-              isActive={tab.id === activeTabId && view === "terminal"}
+              isActive={tab.id === activeTabId}
               onExit={() => handleTabExit(tab.id)}
             />
           ))}
