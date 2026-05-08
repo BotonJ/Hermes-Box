@@ -5,10 +5,43 @@
   "permissions": [
     "core:default",
     "os:default",
-    "shell:allow-open",
-    "fs:default",
-    "global-shortcut:allow-is-registered",
+    {
+      "identifier": "fs:default",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "/opt/homebrew/**" },
+        { "path": "/usr/local/**" }
+      ]
+    },
+    "pty:allow-spawn",
+    "pty:allow-read",
+    "pty:allow-write",
+    "pty:allow-resize",
+    "pty:allow-kill",
+    "pty:allow-exitstatus",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "which", "cmd": "which", "args": true },
+        { "name": "where", "cmd": "where", "args": true },
+        { "name": "/bin/zsh", "cmd": "/bin/zsh", "args": true },
+        { "name": "env", "cmd": "env", "args": true }
+      ]
+    },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        { "name": "which", "cmd": "which", "args": true },
+        { "name": "where", "cmd": "where", "args": true },
+        { "name": "/bin/zsh", "cmd": "/bin/zsh", "args": true },
+        { "name": "env", "cmd": "env", "args": true }
+      ]
+    },
     "global-shortcut:allow-register",
-    "global-shortcut:allow-unregister"
+    "global-shortcut:allow-is-registered",
+    "global-shortcut:allow-unregister",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }
