@@ -23,7 +23,6 @@ import {
   setThemeMode,
   getEffectiveTheme,
   initTheme,
-  type ThemeMode,
 } from "./theme";
 
 function getDocumentTheme(): string {

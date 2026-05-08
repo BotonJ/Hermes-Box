@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   type CLIMeta,
-  type DetectResult,
   detectCLI,
   detectAllCLIs,
 } from "./cli-detect";

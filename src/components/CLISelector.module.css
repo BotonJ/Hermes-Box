@@ -1,0 +1,115 @@
+.selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-lg);
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: var(--space-sm);
+}
+
+.heading {
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: var(--tracking-tight);
+}
+
+.settingsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  position: absolute;
+  right: 0;
+}
+
+.settingsBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  text-align: left;
+  transition: background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  width: 100%;
+}
+
+.card:hover:not(.disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-hover);
+  border-radius: var(--radius-md);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  margin: 0;
+  letter-spacing: var(--tracking-normal);
+}
+
+.description {
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: var(--leading-normal);
+}
+
+.error {
+  font-size: var(--text-caption);
+  color: var(--danger);
+  margin: var(--space-xxs) 0 0;
+}
