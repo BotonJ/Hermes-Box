@@ -105,6 +105,8 @@ pty.onData((data: unknown) => {
 | Phase 4 | 66 | 全绿 |
 | Phase 5 | 112（含 Phase 4） | 全绿 |
 
+phase E2E测试不通过，因为当前不支持多标签，关闭TAB后必须退出reboot，才能打开新的标签。
+
 ## Git 状态
 
 ```
@@ -122,9 +124,27 @@ d1289b6 feat: initialize HermesBox v2 project from scaffold
 - **Phase 6**：Rust 后端（approval.rs、window.rs、tray.rs）
 - **Phase 7**：全量验证
 
+## Phase 5 后增量修复（0d733a3, 1effa68）
+
+**Bug 1：关闭 tab 后无法打开新 tab**
+
+- 根因：selector 和终端容器同时存在于 flexbox 中，布局冲突
+- 修复：终端容器改为 `view === "terminal" && showTabs` 条件渲染，与 selector 互斥
+- commit: `0d733a3 fix: terminal container mutually exclusive with selector`
+
+**Bug 2：Tab 关闭按钮（×）不可见**
+
+- 根因：v2 的 app.css 只定义了 4 个 CSS 变量，而组件 CSS 模块引用了完整的 token 系统（`--text-muted`、`--surface-base`、`--border` 等 40+ 变量）
+- 修复：从 v1 `global.css` 复制完整设计 token（暗色 + 浅色主题），替换 app.css
+- commit: `1effa68 fix: add full design token CSS variables from v1`
+
+**待验证**：重启 `pnpm tauri dev` 后手动测试
+
 ## 决策记录
 
 1. **先用 v1 架构（useState）**：不迁移到 signals，已验证稳定
 2. **简化 App.tsx**：不含 Settings/Approval/Toast，降低移植风险
 3. **jsdom 替代 happy-dom**：v2 脚手架选择 jsdom，添加 ResizeObserver mock
 4. **PTY Uint8Array 转换**：在 onData 层统一处理，不修改 tauri-pty
+5. **视图互斥**：selector/terminal/welcome 不同时渲染，避免 flexbox 布局冲突
+6. **CSS token 完整复制**：组件样式依赖完整 token 系统，不能只复制部分变量
