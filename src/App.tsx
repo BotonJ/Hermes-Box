@@ -5,6 +5,7 @@ import { Welcome } from "./components/Welcome";
 import { CLISelector } from "./components/CLISelector";
 import { TabBar, type TabInfo } from "./components/TabBar";
 import { TerminalView } from "./components/TerminalView";
+import { DebugOverlay } from "./components/DebugOverlay";
 import { detectAllCLIs, CLI_REGISTRY, type DetectResult } from "./lib/cli-detect";
 import { execLookup } from "./lib/exec-lookup";
 import { fileExists } from "./lib/file-exists";
@@ -157,6 +158,7 @@ export function App() {
 
   return (
     <div class="app">
+      <DebugOverlay />
       {showTabs && (
         <TabBar
           tabs={tabs}
@@ -166,6 +168,23 @@ export function App() {
           onAdd={() => setView("selector")}
         />
       )}
+      {showTabs && (
+        <div style={`position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--terminal-bg); display: ${view === "terminal" ? "flex" : "none"};`}>
+          {tabs.map((tab) => (
+            <TerminalView
+              key={tab.id}
+              tabId={tab.id}
+              tabTitle={tab.title}
+              shell={tab.shell}
+              shellArgs={tab.shellArgs}
+              env={tab.env}
+              command={tab.command}
+              isActive={tab.id === activeTabId && view === "terminal"}
+              onExit={() => handleTabExit(tab.id)}
+            />
+          ))}
+        </div>
+      )}
       {view === "welcome" && (
         <div style="flex: 1; min-height: 0; overflow-y: auto;">
           <Welcome onContinue={handleContinue} />
@@ -174,21 +193,6 @@ export function App() {
       {view === "selector" && (
         <div style="flex: 1; min-height: 0; overflow-y: auto;">
           <CLISelector results={cliResults} onSelect={handleSelect} />
-        </div>
-      )}
-      {view === "terminal" && showTabs && (
-        <div style="flex: 1; min-height: 0; overflow: hidden; position: relative; background: var(--terminal-bg);">
-          {tabs.map((tab) => (
-            <TerminalView
-              key={tab.id}
-              shell={tab.shell}
-              shellArgs={tab.shellArgs}
-              env={tab.env}
-              command={tab.command}
-              isActive={tab.id === activeTabId}
-              onExit={() => handleTabExit(tab.id)}
-            />
-          ))}
         </div>
       )}
     </div>
