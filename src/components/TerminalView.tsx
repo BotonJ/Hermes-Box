@@ -8,9 +8,12 @@ import { scheduleCommand } from "../lib/schedule-command";
 import { useTerminalFit } from "../lib/use-terminal-fit";
 import { getTheme } from "../lib/theme";
 import { getXtermTheme } from "../lib/xterm-themes";
+import { updateTabMetrics, removeTabMetrics, createByteRateTracker } from "../lib/debug-metrics";
 import styles from "./TerminalView.module.css";
 
 interface TerminalViewProps {
+  tabId: string;
+  tabTitle?: string;
   shell: string;
   shellArgs: string[];
   env?: Record<string, string>;
@@ -19,7 +22,7 @@ interface TerminalViewProps {
   onExit?: (code: number) => void;
 }
 
-export function TerminalView({ shell, shellArgs, env, command, isActive = true, onExit }: TerminalViewProps) {
+export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, isActive = true, onExit }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const ptyRef = useRef<ReturnType<typeof spawn> | null>(null);
@@ -27,6 +30,8 @@ export function TerminalView({ shell, shellArgs, env, command, isActive = true, 
   const onExitRef = useRef(onExit);
   onExitRef.current = onExit;
   const cancelCommandRef = useRef<(() => void) | null>(null);
+  const activeRef = useRef(isActive);
+  const pendingDataRef = useRef<{ chunks: Uint8Array[]; bytes: number }>({ chunks: [], bytes: 0 });
   const [fontSize, setFontSize] = useState(14);
 
   useTerminalFit({
@@ -74,92 +79,13 @@ export function TerminalView({ shell, shellArgs, env, command, isActive = true, 
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
 
-    let disposed = false;
-    let pty: ReturnType<typeof spawn> | null = null;
-    let lastResize: { cols: number; rows: number } | null = null;
-
-    requestAnimationFrame(() => {
-      if (disposed) {
-        term.dispose();
-        return;
-      }
-
-      try {
-        fitAddon.fit();
-      } catch {
-        // Container may have zero size during mount (inactive tab)
-      }
-
-      const spawnEnv = { TERM: "xterm-256color", ...(env ?? {}) };
-      pty = spawn(shell, shellArgs, {
-        cols: term.cols,
-        rows: term.rows,
-        env: spawnEnv,
-      });
-      lastResize = { cols: term.cols, rows: term.rows };
-
-      // Buffer keystrokes until the shell sends its first output,
-      // indicating termios and terminal modes are fully initialized.
-      // Without this, modified keys (e.g. Shift+?) can be lost or
-      // misinterpreted during the shell's startup phase.
-      let ptyReady = false;
-      const pendingWrites: string[] = [];
-
-      pty.onData((data: unknown) => {
-        const bytes = data instanceof Uint8Array
-          ? data
-          : new Uint8Array(data as number[]);
-        term.write(bytes);
-        if (!ptyReady) {
-          ptyReady = true;
-          for (const pending of pendingWrites) {
-            pty!.write(pending);
-          }
-          pendingWrites.length = 0;
-        }
-      });
-
-      term.onData((data: string) => {
-        if (ptyReady) {
-          pty!.write(data);
-        } else {
-          pendingWrites.push(data);
-        }
-      });
-
-      term.onResize((e: { cols: number; rows: number }) => {
-        if (lastResize && e.cols === lastResize.cols && e.rows === lastResize.rows) {
-          return;
-        }
-        lastResize = { cols: e.cols, rows: e.rows };
-        pty!.resize(e.cols, e.rows);
-      });
-
-      pty.onExit(({ exitCode }: { exitCode: number }) => {
-        term.write(`\r\n\r\n[Process exited with code ${exitCode}]\r\n`);
-        onExitRef.current?.(exitCode);
-      });
-
-      if (command) {
-        cancelCommandRef.current = scheduleCommand(
-          pty,
-          term,
-          command,
-          validateCommandPath,
-          escapeForPty,
-        );
-      }
-
-      termRef.current = term;
-      ptyRef.current = pty;
-      fitRef.current = fitAddon;
-    });
+    termRef.current = term;
+    fitRef.current = fitAddon;
 
     return () => {
-      disposed = true;
       cancelCommandRef.current?.();
-      if (pty) {
-        pty.kill();
+      if (ptyRef.current) {
+        ptyRef.current.kill();
       }
       term.dispose();
       termRef.current = null;
@@ -169,6 +95,142 @@ export function TerminalView({ shell, shellArgs, env, command, isActive = true, 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shell, shellArgs, command]);
+
+  // Track renderer paused state for metrics
+  const renderPausedRef = useRef(false);
+
+  // Register tab metrics and periodic update
+  useEffect(() => {
+    updateTabMetrics(tabId, { title: tabTitle || tabId, isActive, renderActive: isActive });
+
+    const interval = setInterval(() => {
+      const term = termRef.current;
+      if (!term) return;
+      updateTabMetrics(tabId, {
+        isActive,
+        bufferLines: term.buffer.active.length,
+        scrollback: term.options.scrollback ?? 0,
+        cols: term.cols,
+        rows: term.rows,
+        renderActive: !renderPausedRef.current,
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      removeTabMetrics(tabId);
+    };
+  }, [tabId, tabTitle, isActive]);
+
+  // Spawn PTY on first activation, then pause/resume renderer on subsequent toggles
+  useEffect(() => {
+    activeRef.current = isActive;
+    const term = termRef.current;
+    if (!term) return;
+
+    if (isActive) {
+      // Spawn PTY on first activation
+      if (!ptyRef.current) {
+        const fitAddon = fitRef.current;
+        if (fitAddon) {
+          try { fitAddon.fit(); } catch { /* zero-size container */ }
+        }
+
+        const spawnEnv = { TERM: "xterm-256color", ...(env ?? {}) };
+        const pty = spawn(shell, shellArgs, {
+          cols: term.cols,
+          rows: term.rows,
+          env: spawnEnv,
+        });
+        ptyRef.current = pty;
+
+        let ptyReady = false;
+        const pendingWrites: string[] = [];
+
+        const trackBytes = createByteRateTracker((bps, total) => {
+          updateTabMetrics(tabId, { bytesPerSec: bps, bytesIn: total });
+        });
+
+        const MAX_PENDING = 512 * 1024;
+
+        pty.onData((data: unknown) => {
+          const bytes = data instanceof Uint8Array
+            ? data
+            : new Uint8Array(data as number[]);
+          trackBytes(bytes.length);
+          if (activeRef.current) {
+            term.write(bytes);
+          } else {
+            const buf = pendingDataRef.current;
+            buf.chunks.push(bytes);
+            buf.bytes += bytes.length;
+            while (buf.bytes > MAX_PENDING && buf.chunks.length > 1) {
+              buf.bytes -= buf.chunks.shift()!.length;
+            }
+          }
+          if (!ptyReady) {
+            ptyReady = true;
+            for (const pending of pendingWrites) {
+              pty.write(pending);
+            }
+            pendingWrites.length = 0;
+          }
+        });
+
+        term.onData((data: string) => {
+          if (ptyReady) {
+            pty.write(data);
+          } else {
+            pendingWrites.push(data);
+          }
+        });
+
+        let lastResize: { cols: number; rows: number } | null = null;
+        term.onResize((e: { cols: number; rows: number }) => {
+          if (lastResize && e.cols === lastResize.cols && e.rows === lastResize.rows) return;
+          lastResize = { cols: e.cols, rows: e.rows };
+          pty.resize(e.cols, e.rows);
+        });
+
+        pty.onExit(({ exitCode }: { exitCode: number }) => {
+          term.write(`\r\n\r\n[Process exited with code ${exitCode}]\r\n`);
+          onExitRef.current?.(exitCode);
+        });
+
+        if (command) {
+          cancelCommandRef.current = scheduleCommand(
+            pty,
+            term,
+            command,
+            validateCommandPath,
+            escapeForPty,
+          );
+        }
+      }
+
+      // Flush buffered data and resume renderer
+      renderPausedRef.current = false;
+      const buf = pendingDataRef.current;
+      if (buf.chunks.length > 0) {
+        for (const chunk of buf.chunks) {
+          term.write(chunk);
+        }
+        buf.chunks = [];
+        buf.bytes = 0;
+      }
+      const renderService = (term as any)._core?._renderService;
+      if (renderService) {
+        renderService.refreshRows(0, term.rows - 1);
+      }
+    } else {
+      // Pause renderer for inactive tabs
+      renderPausedRef.current = true;
+      const renderService = (term as any)._core?._renderService;
+      if (renderService) {
+        renderService.clear();
+      }
+    }
+  }, [isActive]);
 
   // Respond to theme changes
   useEffect(() => {
