@@ -138,6 +138,12 @@ d1289b6 feat: initialize HermesBox v2 project from scaffold
 - 修复：从 v1 `global.css` 复制完整设计 token（暗色 + 浅色主题），替换 app.css
 - commit: `1effa68 fix: add full design token CSS variables from v1`
 
+**Bug 3：终端覆盖 TabBar，无法关闭标签**
+
+- 根因：TerminalView 的 `.terminal` 使用 `position: absolute` 填充父容器，但父容器 `<div style="flex: 1">` 没有 `position: relative`，导致终端相对于 `.app` 定位，覆盖整个窗口（包括 TabBar）
+- 修复：终端容器加 `position: relative`，约束绝对定位范围
+- commit: `6640451 fix: terminal overlapping TabBar due to absolute positioning`
+
 **待验证**：重启 `pnpm tauri dev` 后手动测试
 
 ## 决策记录
