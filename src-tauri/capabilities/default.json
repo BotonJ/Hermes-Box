@@ -13,12 +13,6 @@
         { "path": "/usr/local/**" }
       ]
     },
-    "pty:allow-spawn",
-    "pty:allow-read",
-    "pty:allow-write",
-    "pty:allow-resize",
-    "pty:allow-kill",
-    "pty:allow-exitstatus",
     {
       "identifier": "shell:allow-execute",
       "allow": [

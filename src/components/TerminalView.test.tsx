@@ -63,7 +63,7 @@ installROMock();
 
 vi.mock("@xterm/xterm", () => ({ Terminal: MockTerminal }));
 vi.mock("@xterm/addon-fit", () => ({ FitAddon: MockFitAddon }));
-vi.mock("tauri-pty", () => ({ spawn: () => new MockPty() }));
+vi.mock("../lib/pty", () => ({ spawn: () => new MockPty() }));
 vi.mock("../lib/use-terminal-fit", () => ({ useTerminalFit: () => {} }));
 vi.mock("../lib/validate-command", () => ({
   validateCommandPath: vi.fn(),
@@ -136,7 +136,7 @@ describe("TerminalView — term.open() timing", () => {
     let openCalledInObserver = false;
 
     // Wrap mockOpen to detect if it's called during the observer callback
-    mockOpen.mockImplementation((container: HTMLElement) => {
+    mockOpen.mockImplementation((_container: HTMLElement) => {
       openCalledInObserver = true;
     });
 

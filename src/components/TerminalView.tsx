@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useLayoutEffect } from "preact/hooks";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import { spawn } from "tauri-pty";
+import { spawn } from "../lib/pty";
 import { validateCommandPath, escapeForPty } from "../lib/validate-command";
 import { scheduleCommand } from "../lib/schedule-command";
 import { useTerminalFit } from "../lib/use-terminal-fit";
@@ -33,6 +33,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
   const activeRef = useRef(isActive);
   const pendingDataRef = useRef<{ chunks: Uint8Array[]; bytes: number }>({ chunks: [], bytes: 0 });
   const spawnPtyFnRef = useRef<(() => void) | null>(null);
+  const ptyDisposedRef = useRef(false);
   const [fontSize, setFontSize] = useState(14);
 
   useTerminalFit({
@@ -87,6 +88,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     function spawnPty() {
       if (ptyRef.current || !term.element) return;
 
+      console.log(`[DEBUG-TV] ${tabId} spawnPty: cols=${term.cols} rows=${term.rows}`);
       const spawnEnv = { TERM: "xterm-256color", ...(env ?? {}) };
       const pty = spawn(shell, shellArgs, {
         cols: term.cols,
@@ -96,6 +98,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       ptyRef.current = pty;
 
       let ptyReady = false;
+      ptyDisposedRef.current = false;
       const pendingWrites: string[] = [];
 
       const trackBytes = createByteRateTracker((bps, total) => {
@@ -105,6 +108,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       const MAX_PENDING = 512 * 1024;
 
       pty.onData((data: unknown) => {
+        if (ptyDisposedRef.current) return;
         const bytes = data instanceof Uint8Array
           ? data
           : new Uint8Array(data as number[]);
@@ -137,11 +141,15 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       });
 
       term.onResize((e: { cols: number; rows: number }) => {
+        if (!ptyReady) return;
         pty.resize(e.cols, e.rows);
       });
 
       pty.onExit(({ exitCode }: { exitCode: number }) => {
+        if (ptyDisposedRef.current) return;
         term.write(`\r\n\r\n[Process exited with code ${exitCode}]\r\n`);
+        pendingWrites.length = 0;
+        pendingDataRef.current = { chunks: [], bytes: 0 };
         onExitRef.current?.(exitCode);
       });
 
@@ -162,9 +170,12 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     // Only the active tab should open at mount time; inactive tabs open on activation.
     const observer = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
-      if (width > 0 && height > 0 && !term.element && activeRef.current) {
+      const canOpen = width > 0 && height > 0 && !term.element && activeRef.current;
+      console.log(`[DEBUG-TV] ${tabId} observer: ${width}x${height} hasElement=${!!term.element} active=${activeRef.current} canOpen=${canOpen}`);
+      if (canOpen) {
         term.open(container);
         try { fitAddon.fit(); } catch { /* ignore */ }
+        console.log(`[DEBUG-TV] ${tabId} observer opened: cols=${term.cols} rows=${term.rows}`);
         spawnPty();
       }
     });
@@ -174,6 +185,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       observer.disconnect();
       spawnPtyFnRef.current = null;
       cancelCommandRef.current?.();
+      ptyDisposedRef.current = true;
       if (ptyRef.current) {
         ptyRef.current.kill();
       }
@@ -217,11 +229,13 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     activeRef.current = isActive;
     const term = termRef.current;
     const container = containerRef.current;
+    console.log(`[DEBUG-TV] ${tabId} isActive=${isActive} hasTerm=${!!term} hasContainer=${!!container} hasElement=${!!term?.element} hasPty=${!!ptyRef.current}`);
     if (!term || !container) return;
 
     if (isActive) {
       // Open terminal if not yet opened (was inactive when ResizeObserver ran)
       if (!term.element) {
+        console.log(`[DEBUG-TV] ${tabId} useLayoutEffect opening terminal`);
         term.open(container);
       }
 
@@ -230,9 +244,11 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       if (fitAddon) {
         try { fitAddon.fit(); } catch { /* zero-size container */ }
       }
+      console.log(`[DEBUG-TV] ${tabId} useLayoutEffect fit: cols=${term.cols} rows=${term.rows}`);
 
       // Spawn PTY if terminal is open but PTY not yet spawned
       if (!ptyRef.current && term.element) {
+        console.log(`[DEBUG-TV] ${tabId} useLayoutEffect spawning PTY`);
         spawnPtyFnRef.current?.();
       }
 
@@ -254,10 +270,11 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
 
   // Respond to theme changes
   useEffect(() => {
-    const term = termRef.current;
-    if (!term) return;
+    if (!termRef.current) return;
 
     const observer = new MutationObserver(() => {
+      const term = termRef.current;
+      if (!term) return;
       const t = document.documentElement.dataset.theme;
       if (t === "light" || t === "dark") {
         term.options.theme = getXtermTheme(t);
