@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "preact/hooks";
+import { useRef, useState, useEffect, useLayoutEffect } from "preact/hooks";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
@@ -32,6 +32,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
   const cancelCommandRef = useRef<(() => void) | null>(null);
   const activeRef = useRef(isActive);
   const pendingDataRef = useRef<{ chunks: Uint8Array[]; bytes: number }>({ chunks: [], bytes: 0 });
+  const spawnPtyFnRef = useRef<(() => void) | null>(null);
   const [fontSize, setFontSize] = useState(14);
 
   useTerminalFit({
@@ -63,8 +64,10 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     }
   }, [fontSize]);
 
+  // Create terminal, open when container is visible AND tab is active
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     const term = new Terminal({
       convertEol: true,
@@ -77,12 +80,99 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
-    term.open(containerRef.current);
 
     termRef.current = term;
     fitRef.current = fitAddon;
 
+    function spawnPty() {
+      if (ptyRef.current || !term.element) return;
+
+      const spawnEnv = { TERM: "xterm-256color", ...(env ?? {}) };
+      const pty = spawn(shell, shellArgs, {
+        cols: term.cols,
+        rows: term.rows,
+        env: spawnEnv,
+      });
+      ptyRef.current = pty;
+
+      let ptyReady = false;
+      const pendingWrites: string[] = [];
+
+      const trackBytes = createByteRateTracker((bps, total) => {
+        updateTabMetrics(tabId, { bytesPerSec: bps, bytesIn: total });
+      });
+
+      const MAX_PENDING = 512 * 1024;
+
+      pty.onData((data: unknown) => {
+        const bytes = data instanceof Uint8Array
+          ? data
+          : new Uint8Array(data as number[]);
+        trackBytes(bytes.length);
+        if (activeRef.current) {
+          term.write(bytes);
+        } else {
+          const buf = pendingDataRef.current;
+          buf.chunks.push(bytes);
+          buf.bytes += bytes.length;
+          while (buf.bytes > MAX_PENDING && buf.chunks.length > 1) {
+            buf.bytes -= buf.chunks.shift()!.length;
+          }
+        }
+        if (!ptyReady) {
+          ptyReady = true;
+          for (const pending of pendingWrites) {
+            pty.write(pending);
+          }
+          pendingWrites.length = 0;
+        }
+      });
+
+      term.onData((data: string) => {
+        if (ptyReady) {
+          pty.write(data);
+        } else {
+          pendingWrites.push(data);
+        }
+      });
+
+      term.onResize((e: { cols: number; rows: number }) => {
+        pty.resize(e.cols, e.rows);
+      });
+
+      pty.onExit(({ exitCode }: { exitCode: number }) => {
+        term.write(`\r\n\r\n[Process exited with code ${exitCode}]\r\n`);
+        onExitRef.current?.(exitCode);
+      });
+
+      if (command) {
+        cancelCommandRef.current = scheduleCommand(
+          pty,
+          term,
+          command,
+          validateCommandPath,
+          escapeForPty,
+        );
+      }
+    }
+
+    spawnPtyFnRef.current = spawnPty;
+
+    // Open terminal when container has non-zero dimensions AND tab is active.
+    // Only the active tab should open at mount time; inactive tabs open on activation.
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      if (width > 0 && height > 0 && !term.element && activeRef.current) {
+        term.open(container);
+        try { fitAddon.fit(); } catch { /* ignore */ }
+        spawnPty();
+      }
+    });
+    observer.observe(container);
+
     return () => {
+      observer.disconnect();
+      spawnPtyFnRef.current = null;
       cancelCommandRef.current?.();
       if (ptyRef.current) {
         ptyRef.current.kill();
@@ -122,90 +212,28 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     };
   }, [tabId, tabTitle, isActive]);
 
-  // Spawn PTY on first activation, then pause/resume renderer on subsequent toggles
-  useEffect(() => {
+  // Pause/resume renderer on tab toggle, open terminal if needed
+  useLayoutEffect(() => {
     activeRef.current = isActive;
     const term = termRef.current;
-    if (!term) return;
+    const container = containerRef.current;
+    if (!term || !container) return;
 
     if (isActive) {
-      // Spawn PTY on first activation
-      if (!ptyRef.current) {
-        const fitAddon = fitRef.current;
-        if (fitAddon) {
-          try { fitAddon.fit(); } catch { /* zero-size container */ }
-        }
+      // Open terminal if not yet opened (was inactive when ResizeObserver ran)
+      if (!term.element) {
+        term.open(container);
+      }
 
-        const spawnEnv = { TERM: "xterm-256color", ...(env ?? {}) };
-        const pty = spawn(shell, shellArgs, {
-          cols: term.cols,
-          rows: term.rows,
-          env: spawnEnv,
-        });
-        ptyRef.current = pty;
+      // Re-fit when becoming active (container may have resized while hidden)
+      const fitAddon = fitRef.current;
+      if (fitAddon) {
+        try { fitAddon.fit(); } catch { /* zero-size container */ }
+      }
 
-        let ptyReady = false;
-        const pendingWrites: string[] = [];
-
-        const trackBytes = createByteRateTracker((bps, total) => {
-          updateTabMetrics(tabId, { bytesPerSec: bps, bytesIn: total });
-        });
-
-        const MAX_PENDING = 512 * 1024;
-
-        pty.onData((data: unknown) => {
-          const bytes = data instanceof Uint8Array
-            ? data
-            : new Uint8Array(data as number[]);
-          trackBytes(bytes.length);
-          if (activeRef.current) {
-            term.write(bytes);
-          } else {
-            const buf = pendingDataRef.current;
-            buf.chunks.push(bytes);
-            buf.bytes += bytes.length;
-            while (buf.bytes > MAX_PENDING && buf.chunks.length > 1) {
-              buf.bytes -= buf.chunks.shift()!.length;
-            }
-          }
-          if (!ptyReady) {
-            ptyReady = true;
-            for (const pending of pendingWrites) {
-              pty.write(pending);
-            }
-            pendingWrites.length = 0;
-          }
-        });
-
-        term.onData((data: string) => {
-          if (ptyReady) {
-            pty.write(data);
-          } else {
-            pendingWrites.push(data);
-          }
-        });
-
-        let lastResize: { cols: number; rows: number } | null = null;
-        term.onResize((e: { cols: number; rows: number }) => {
-          if (lastResize && e.cols === lastResize.cols && e.rows === lastResize.rows) return;
-          lastResize = { cols: e.cols, rows: e.rows };
-          pty.resize(e.cols, e.rows);
-        });
-
-        pty.onExit(({ exitCode }: { exitCode: number }) => {
-          term.write(`\r\n\r\n[Process exited with code ${exitCode}]\r\n`);
-          onExitRef.current?.(exitCode);
-        });
-
-        if (command) {
-          cancelCommandRef.current = scheduleCommand(
-            pty,
-            term,
-            command,
-            validateCommandPath,
-            escapeForPty,
-          );
-        }
+      // Spawn PTY if terminal is open but PTY not yet spawned
+      if (!ptyRef.current && term.element) {
+        spawnPtyFnRef.current?.();
       }
 
       // Flush buffered data and resume renderer
@@ -218,17 +246,9 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
         buf.chunks = [];
         buf.bytes = 0;
       }
-      const renderService = (term as any)._core?._renderService;
-      if (renderService) {
-        renderService.refreshRows(0, term.rows - 1);
-      }
+      term.focus();
     } else {
-      // Pause renderer for inactive tabs
       renderPausedRef.current = true;
-      const renderService = (term as any)._core?._renderService;
-      if (renderService) {
-        renderService.clear();
-      }
     }
   }, [isActive]);
 
