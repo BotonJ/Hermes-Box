@@ -1,3 +1,5 @@
+mod pty;
+
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 
@@ -16,8 +18,17 @@ pub fn run() {
             MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
         ))
-        .plugin(tauri_plugin_pty::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .setup(|app| {
+            pty::manage_pty_state(app);
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            pty::pty_spawn,
+            pty::pty_write,
+            pty::pty_resize,
+            pty::pty_kill
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
