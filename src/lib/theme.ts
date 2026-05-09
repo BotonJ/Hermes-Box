@@ -63,19 +63,7 @@ export function initTheme(): void {
   setThemeMode(getThemeMode());
 }
 
-/** @deprecated Use {@link getEffectiveTheme} instead. */
+/** Returns the effective theme (alias for getEffectiveTheme). */
 export function getTheme(): Theme {
   return getEffectiveTheme();
-}
-
-/** @deprecated Use {@link setThemeMode} directly with the desired value. */
-export function setTheme(theme: Theme): void {
-  setThemeMode(theme);
-}
-
-/** @deprecated Use {@link setThemeMode} directly with the desired value. */
-export function toggleTheme(): Theme {
-  const next = getEffectiveTheme() === "dark" ? "light" : "dark";
-  setThemeMode(next);
-  return next;
 }

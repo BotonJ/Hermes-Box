@@ -67,14 +67,14 @@ describe("i18n", () => {
       expect(t("app.welcome")).toBe("欢迎使用 HermesBox");
     });
 
-    it("translates settings.title in English", () => {
+    it("translates cli.shell in English", () => {
       localStorage.setItem("hermesbox:locale", "en");
-      expect(t("settings.title")).toBe("Settings");
+      expect(t("cli.shell")).toBe("Shell");
     });
 
-    it("translates settings.title in Chinese", () => {
+    it("translates cli.shell in Chinese", () => {
       localStorage.setItem("hermesbox:locale", "zh");
-      expect(t("settings.title")).toBe("设置");
+      expect(t("cli.shell")).toBe("终端");
     });
 
     it("returns key for unknown key", () => {

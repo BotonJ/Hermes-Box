@@ -7,43 +7,8 @@
   "selector": {
     "heading": "选择助手"
   },
-  "settings": {
-    "title": "设置",
-    "back": "返回",
-    "launchAtLogin": "开机启动",
-    "launchAtLoginDesc": "登录时自动启动 HermesBox",
-    "appearance": "外观",
-    "appearanceDesc": "选择浅色或深色主题",
-    "language": "语言",
-    "languageDesc": "选择您偏好的语言",
-    "approvalConfig": "审批配置",
-    "approvalConfigDesc": "为 Claude Code 或 Hermes 生成钩子配置",
-    "generateClaude": "生成 Claude 配置",
-    "generateHermes": "生成 Hermes 配置",
-    "bridgeDirectory": "桥接目录",
-    "success": "配置生成成功",
-    "error": "操作失败",
-    "sessionRestore": "会话恢复",
-    "sessionRestoreDesc": "启动时自动恢复上次会话的标签页"
-  },
-  "theme": {
-    "dark": "深色",
-    "light": "浅色",
-    "system": "跟随系统"
-  },
-  "terminal": {
-    "exited": "[进程已退出，代码 {{exitCode}}]"
-  },
-  "approval": {
-    "title": "需要审批",
-    "approve": "批准",
-    "deny": "拒绝"
-  },
   "cli": {
-    "hermes": "Hermes",
-    "claude": "Claude Code",
     "shell": "终端",
-    "shellDesc": "原始终端（支持 tmux）",
-    "notFound": "未找到，请先安装。"
+    "shellDesc": "原始终端（支持 tmux）"
   }
 }
