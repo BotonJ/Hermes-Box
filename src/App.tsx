@@ -100,8 +100,6 @@ export function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tabs, activeTabId]);
 
-  const MAX_TABS = 5;
-
   function addTab(
     cliId: string,
     title: string,
@@ -110,7 +108,6 @@ export function App() {
     env: Record<string, string>,
     command: string,
   ) {
-    if (tabs.length >= MAX_TABS) return;
     const id = crypto.randomUUID();
     console.log(`[DEBUG-APP] addTab: id=${id} cliId=${cliId} title=${title} total=${tabs.length + 1}`);
     setTabs((prev) => [...prev, { id, cliId, title, shell, shellArgs, env, command }]);
@@ -154,10 +151,6 @@ export function App() {
     });
   }
 
-  function handleTabExit(tabId: string) {
-    handleTabClose(tabId);
-  }
-
   const showTabs = tabs.length > 0;
   console.log(`[DEBUG-APP] render: view=${view} tabs=${tabs.length} activeTabId=${activeTabId} showTabs=${showTabs}`);
 
@@ -185,7 +178,7 @@ export function App() {
               env={tab.env}
               command={tab.command}
               isActive={tab.id === activeTabId && view === "terminal"}
-              onExit={() => handleTabExit(tab.id)}
+              onExit={() => handleTabClose(tab.id)}
             />
           ))}
         </div>
