@@ -7,8 +7,43 @@
   "selector": {
     "heading": "Choose an Assistant"
   },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "launchAtLogin": "Launch at Login",
+    "launchAtLoginDesc": "Start HermesBox automatically when you log in",
+    "appearance": "Appearance",
+    "appearanceDesc": "Choose light or dark theme",
+    "language": "Language",
+    "languageDesc": "Choose your preferred language",
+    "approvalConfig": "Approval Config",
+    "approvalConfigDesc": "Generate hook configuration for Claude Code or Hermes",
+    "generateClaude": "Generate Claude Config",
+    "generateHermes": "Generate Hermes Config",
+    "bridgeDirectory": "Bridge directory",
+    "success": "Config generated successfully",
+    "error": "Operation failed",
+    "sessionRestore": "Session Restore",
+    "sessionRestoreDesc": "Automatically restore tabs from your last session on launch"
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light",
+    "system": "Follow System"
+  },
+  "terminal": {
+    "exited": "[Process exited with code {{exitCode}}]"
+  },
+  "approval": {
+    "title": "Approval Required",
+    "approve": "Approve",
+    "deny": "Deny"
+  },
   "cli": {
+    "hermes": "Hermes",
+    "claude": "Claude Code",
     "shell": "Shell",
-    "shellDesc": "Raw terminal (tmux ready)"
+    "shellDesc": "Raw terminal (tmux ready)",
+    "notFound": "not found. Please install it first."
   }
 }

@@ -44,11 +44,11 @@ describe("validateCommandPath", () => {
 });
 
 describe("escapeForPty", () => {
-  it("wraps command in double quotes", () => {
-    expect(escapeForPty("/usr/bin/hermes")).toBe('"/usr/bin/hermes"');
+  it("passes command through unchanged", () => {
+    expect(escapeForPty("/usr/bin/hermes")).toBe("/usr/bin/hermes");
   });
 
-  it("escapes embedded double quotes", () => {
-    expect(escapeForPty('/usr/bin/it"s')).toBe('"/usr/bin/it\\"s"');
+  it("passes path with special chars through unchanged (validateCommandPath rejects them separately)", () => {
+    expect(escapeForPty('/usr/bin/it"s')).toBe('/usr/bin/it"s');
   });
 });

@@ -35,6 +35,8 @@ pub async fn pty_spawn(
     session_id: String,
     command: String,
     args: Vec<String>,
+    env: HashMap<String, String>,
+    exec_command: String,
     cwd: String,
     cols: u16,
     rows: u16,
@@ -52,8 +54,18 @@ pub async fn pty_spawn(
         .map_err(|e| format!("openpty failed: {e}"))?;
 
     let mut cmd = CommandBuilder::new(&command);
-    cmd.args(&args);
+    if exec_command.is_empty() {
+        cmd.args(&args);
+    } else {
+        // Spawn login shell with -c "exec <command>" to avoid echo of command path
+        cmd.args(&args);
+        cmd.arg("-c");
+        cmd.arg(format!("exec {exec_command}"));
+    }
     cmd.cwd(&cwd);
+    for (key, value) in &env {
+        cmd.env(key, value);
+    }
 
     let child = pair
         .slave

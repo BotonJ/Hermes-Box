@@ -3,8 +3,9 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { spawn } from "../lib/pty";
-import { validateCommandPath, escapeForPty } from "../lib/validate-command";
-import { scheduleCommand } from "../lib/schedule-command";
+
+// zsh PROMPT_SP: \e[1m\e[7m%\e[27m\e[1m\e[0m + spaces + \r \r
+const PROMPT_SP_RE = /\x1b\[1m\x1b\[7m%\x1b\[27m\x1b\[1m\x1b\[0m[^\x0d]*\x0d \x0d/;
 import { useTerminalFit } from "../lib/use-terminal-fit";
 import { getTheme } from "../lib/theme";
 import { getXtermTheme } from "../lib/xterm-themes";
@@ -29,9 +30,9 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
   const fitRef = useRef<FitAddon | null>(null);
   const onExitRef = useRef(onExit);
   onExitRef.current = onExit;
-  const cancelCommandRef = useRef<(() => void) | null>(null);
   const activeRef = useRef(isActive);
   const pendingDataRef = useRef<{ chunks: Uint8Array[]; bytes: number }>({ chunks: [], bytes: 0 });
+  const promptSpStripped = useRef(false);
   const spawnPtyFnRef = useRef<(() => void) | null>(null);
   const ptyDisposedRef = useRef(false);
   const [fontSize, setFontSize] = useState(14);
@@ -94,6 +95,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
         cols: term.cols,
         rows: term.rows,
         env: spawnEnv,
+        execCommand: command || undefined,
       });
       ptyRef.current = pty;
 
@@ -109,9 +111,20 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
 
       pty.onData((data: unknown) => {
         if (ptyDisposedRef.current) return;
-        const bytes = data instanceof Uint8Array
+        let bytes = data instanceof Uint8Array
           ? data
           : new Uint8Array(data as number[]);
+
+        // Strip zsh PROMPT_SP marker from first output chunk
+        if (!promptSpStripped.current) {
+          const text = new TextDecoder().decode(bytes);
+          const stripped = text.replace(PROMPT_SP_RE, "");
+          if (stripped !== text) {
+            promptSpStripped.current = true;
+            bytes = new TextEncoder().encode(stripped);
+          }
+        }
+
         trackBytes(bytes.length);
         if (activeRef.current) {
           term.write(bytes);
@@ -152,16 +165,6 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
         pendingDataRef.current = { chunks: [], bytes: 0 };
         onExitRef.current?.(exitCode);
       });
-
-      if (command) {
-        cancelCommandRef.current = scheduleCommand(
-          pty,
-          term,
-          command,
-          validateCommandPath,
-          escapeForPty,
-        );
-      }
     }
 
     spawnPtyFnRef.current = spawnPty;
@@ -184,7 +187,6 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     return () => {
       observer.disconnect();
       spawnPtyFnRef.current = null;
-      cancelCommandRef.current?.();
       ptyDisposedRef.current = true;
       if (ptyRef.current) {
         ptyRef.current.kill();
@@ -193,7 +195,6 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       termRef.current = null;
       ptyRef.current = null;
       fitRef.current = null;
-      cancelCommandRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shell, shellArgs, command]);

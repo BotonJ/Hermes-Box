@@ -3,21 +3,13 @@ interface Writer {
 }
 
 export function scheduleCommand(
-  pty: Writer,
-  term: Writer,
-  command: string,
-  validate: (cmd: string) => string,
-  escape: (cmd: string) => string,
-  delay = 400
+  _pty: Writer,
+  _term: Writer,
+  _command: string,
+  _validate: (cmd: string) => string,
+  _escape: (cmd: string) => string,
+  _delay = 400
 ): () => void {
-  const timer = setTimeout(() => {
-    try {
-      const safeCommand = validate(command);
-      pty.write(escape(safeCommand) + "\n");
-    } catch {
-      term.write("\r\n[Error: Invalid command path]\r\n");
-    }
-  }, delay);
-
-  return () => clearTimeout(timer);
+  // No-op: command is now passed as shell args via Rust spawn (no echo issue)
+  return () => {};
 }

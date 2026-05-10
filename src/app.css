@@ -197,13 +197,4 @@ body {
   background: rgba(0, 0, 0, 0.25);
 }
 
-/* === App layout === */
-.app {
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--canvas);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-}
+/* App layout is in App.module.css */

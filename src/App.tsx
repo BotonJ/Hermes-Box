@@ -1,4 +1,4 @@
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks";
 import { platform } from "@tauri-apps/plugin-os";
 import { homeDir } from "@tauri-apps/api/path";
 import { listen } from "@tauri-apps/api/event";
@@ -6,13 +6,26 @@ import { Welcome } from "./components/Welcome";
 import { CLISelector } from "./components/CLISelector";
 import { TabBar, type TabInfo } from "./components/TabBar";
 import { TerminalView } from "./components/TerminalView";
-import { DebugOverlay } from "./components/DebugOverlay";
-import { ApprovalModal, type ApprovalRequest } from "./components/ApprovalModal";
+import { Settings } from "./components/Settings";
+import { ApprovalPanel } from "./components/ApprovalPanel";
+import { ToastContainer } from "./components/Toast";
 import { detectAllCLIs, CLI_REGISTRY, type DetectResult } from "./lib/cli-detect";
+import { captureShellEnv, mergeEnv } from "./lib/env-capture";
 import { execLookup } from "./lib/exec-lookup";
 import { fileExists } from "./lib/file-exists";
+import { runCommand } from "./lib/run-command";
+import {
+  listenForApprovals,
+  approveCommand,
+  denyCommand,
+  listPendingApprovals,
+  type ApprovalRequest,
+} from "./lib/approval-bridge";
+import { saveTabs, loadTabs, isRestoreEnabled } from "./lib/tab-storage";
+import { useToast } from "./lib/use-toast";
+import styles from "./App.module.css";
 
-type View = "welcome" | "selector" | "terminal";
+type View = "welcome" | "selector" | "terminal" | "settings";
 
 interface Tab extends TabInfo {
   shell: string;
@@ -48,6 +61,9 @@ export function App() {
   const [view, setView] = useState<View>(wasWelcomed() ? "selector" : "welcome");
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const { toasts, show: showToast, dismiss: dismissToast } = useToast();
   const [cliResults, setCliResults] = useState<DetectResult[]>(() =>
     CLI_REGISTRY.map((m) => ({
       id: m.id,
@@ -56,27 +72,63 @@ export function App() {
       error: `${m.label} not found. Please install it first.`,
     })),
   );
-  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
+
+  // Listen for navigate-settings event from tray
+  useEffect(() => {
+    const unlisten = listen("navigate-settings", () => {
+      setView("settings");
+    });
+    return () => { unlisten.then((fn) => fn()).catch(() => {}); };
+  }, []);
 
   // Listen for approval requests from Rust backend
   useEffect(() => {
-    const unlisten = listen<ApprovalRequest>("approval-request", (event) => {
-      setApprovalRequest(event.payload);
+    const unlisten = listenForApprovals((request) => {
+      setPendingApprovals((prev) => [...prev, request]);
     });
-    return () => { unlisten.then((fn) => fn()); };
+    return () => { unlisten.then((fn) => fn()).catch(() => {}); };
   }, []);
 
-  // Detect CLIs when entering selector view
+  // Reconcile pending approvals on mount
   useEffect(() => {
-    if (view !== "selector") return;
+    listPendingApprovals()
+      .then((requests) => {
+        if (requests.length > 0) {
+          setPendingApprovals((prev) => {
+            const existingIds = new Set(prev.map((r) => r.id));
+            const fresh = requests.filter((r) => !existingIds.has(r.id));
+            return fresh.length > 0 ? [...prev, ...fresh] : prev;
+          });
+        }
+      })
+      .catch((err) => { console.warn("Approval reconciliation failed:", err); });
+  }, []);
 
-    const os = platform() === "windows" ? "windows" : "darwin";
+  // Restore saved tabs on mount if enabled
+  useEffect(() => {
+    if (!isRestoreEnabled()) return;
+    const saved = loadTabs();
+    if (saved.length === 0) return;
+    const restored: Tab[] = saved.map((meta) => ({
+      id: crypto.randomUUID(),
+      ...meta,
+    }));
+    setTabs(restored);
+    setActiveTabId(restored[0].id);
+    setView("terminal");
+  }, []);
 
-    homeDir()
-      .then((home) => detectAllCLIs(CLI_REGISTRY, os, execLookup, fileExists, home))
-      .catch(() => detectAllCLIs(CLI_REGISTRY, os, execLookup, fileExists, ""))
-      .then((results) => setCliResults(results));
-  }, [view]);
+  // Persist tabs whenever they change (skip mount to avoid overwriting saved tabs)
+  const saveSkipFirst = useRef(true);
+  useEffect(() => {
+    if (saveSkipFirst.current) {
+      saveSkipFirst.current = false;
+      return;
+    }
+    saveTabs(tabs.map(({ cliId, title, shell, shellArgs, env, command }) => ({
+      cliId, title, shell, shellArgs, env, command,
+    })));
+  }, [tabs]);
 
   // Keyboard shortcuts: Cmd+1..9, Cmd+Shift+[/]
   useEffect(() => {
@@ -98,11 +150,17 @@ export function App() {
         if (e.key === "[" || e.key === "{") {
           e.preventDefault();
           const curIdx = tabs.findIndex((t) => t.id === activeTabId);
-          if (curIdx > 0) setActiveTabId(tabs[curIdx - 1].id);
+          if (curIdx > 0) {
+            setActiveTabId(tabs[curIdx - 1].id);
+            setView("terminal");
+          }
         } else if (e.key === "]" || e.key === "}") {
           e.preventDefault();
           const curIdx = tabs.findIndex((t) => t.id === activeTabId);
-          if (curIdx < tabs.length - 1) setActiveTabId(tabs[curIdx + 1].id);
+          if (curIdx < tabs.length - 1) {
+            setActiveTabId(tabs[curIdx + 1].id);
+            setView("terminal");
+          }
         }
       }
     }
@@ -110,6 +168,18 @@ export function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tabs, activeTabId]);
+
+  // Detect CLIs when entering selector view
+  useEffect(() => {
+    if (view !== "selector") return;
+
+    const os = platform() === "windows" ? "windows" : "darwin";
+
+    homeDir()
+      .then((home) => detectAllCLIs(CLI_REGISTRY, os, execLookup, fileExists, home))
+      .catch(() => detectAllCLIs(CLI_REGISTRY, os, execLookup, fileExists, ""))
+      .then((results) => setCliResults(results));
+  }, [view]);
 
   function addTab(
     cliId: string,
@@ -120,7 +190,6 @@ export function App() {
     command: string,
   ) {
     const id = crypto.randomUUID();
-    console.log(`[DEBUG-APP] addTab: id=${id} cliId=${cliId} title=${title} total=${tabs.length + 1}`);
     setTabs((prev) => [...prev, { id, cliId, title, shell, shellArgs, env, command }]);
     setActiveTabId(id);
     setView("terminal");
@@ -135,12 +204,26 @@ export function App() {
     const [shell, shellArgs] = getShell();
 
     if (cliId === "shell") {
-      addTab("shell", "Shell", shell, shellArgs, { TERM: "xterm-256color" }, "");
+      captureShellEnv(runCommand)
+        .then((shellEnv) => {
+          const env = mergeEnv(shellEnv, { TERM: "xterm-256color" });
+          addTab("shell", "Shell", shell, shellArgs, env, "");
+        })
+        .catch(() => {
+          addTab("shell", "Shell", shell, shellArgs, { TERM: "xterm-256color" }, "");
+        });
       return;
     }
 
     const meta = CLI_REGISTRY.find((m) => m.id === cliId);
-    addTab(cliId, meta?.label ?? cliId, shell, shellArgs, { TERM: "xterm-256color" }, cliPath);
+    captureShellEnv(runCommand)
+      .then((shellEnv) => {
+        const env = mergeEnv(shellEnv, { TERM: "xterm-256color" });
+        addTab(cliId, meta?.label ?? cliId, shell, shellArgs, env, cliPath);
+      })
+      .catch(() => {
+        addTab(cliId, meta?.label ?? cliId, shell, shellArgs, { TERM: "xterm-256color" }, cliPath);
+      });
   }
 
   function handleTabSwitch(id: string) {
@@ -156,29 +239,103 @@ export function App() {
         setView("selector");
       } else if (activeTabId === id) {
         const idx = prev.findIndex((t) => t.id === id);
-        setActiveTabId(next[Math.min(idx, next.length - 1)].id);
+        const newActive = next[Math.min(idx, next.length - 1)].id;
+        setActiveTabId(newActive);
+        if (view === "settings") {
+          setView("terminal");
+        }
       }
       return next;
     });
   }
 
+  function handleTabExit(tabId: string) {
+    handleTabClose(tabId);
+  }
+
+  function handleAddTab() {
+    setView("selector");
+  }
+
+  function handleBackFromSettings() {
+    setView(tabs.length > 0 ? "terminal" : "selector");
+  }
+
+  async function handleApprove(id: string) {
+    setApprovalError(null);
+    try {
+      await approveCommand(id);
+      setPendingApprovals((prev) => prev.filter((r) => r.id !== id));
+      showToast("success", "Command approved");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Approval failed";
+      setApprovalError(msg);
+      showToast("error", msg);
+    }
+  }
+
+  async function handleDeny(id: string) {
+    setApprovalError(null);
+    try {
+      await denyCommand(id);
+      setPendingApprovals((prev) => prev.filter((r) => r.id !== id));
+      showToast("success", "Command denied");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to deny command";
+      setApprovalError(msg);
+      showToast("error", msg);
+    }
+  }
+
   const showTabs = tabs.length > 0;
-  console.log(`[DEBUG-APP] render: view=${view} tabs=${tabs.length} activeTabId=${activeTabId} showTabs=${showTabs}`);
 
   return (
-    <div class="app">
-      <DebugOverlay />
+    <div class={styles.app}>
+      <ApprovalPanel
+        requests={pendingApprovals}
+        error={approvalError}
+        onApprove={handleApprove}
+        onDeny={handleDeny}
+      />
       {showTabs && (
         <TabBar
           tabs={tabs}
-          activeId={activeTabId}
+          activeId={view === "settings" ? null : activeTabId}
+          settingsActive={view === "settings"}
           onSwitch={handleTabSwitch}
           onClose={handleTabClose}
-          onAdd={() => setView("selector")}
+          onAdd={handleAddTab}
+          onSettings={() => setView("settings")}
+          onSettingsClose={() => {
+            if (tabs.length > 0) {
+              setActiveTabId(tabs[tabs.length - 1].id);
+              setView("terminal");
+            } else {
+              setView("selector");
+            }
+          }}
         />
       )}
+      {view === "welcome" && (
+        <div class={styles.contentArea}>
+          <Welcome onContinue={handleContinue} />
+        </div>
+      )}
+      {view === "settings" && (
+        <div class={styles.contentArea}>
+          <Settings onBack={handleBackFromSettings} />
+        </div>
+      )}
+      {view === "selector" && (
+        <div class={styles.contentArea}>
+          <CLISelector results={cliResults} onSelect={handleSelect} />
+        </div>
+      )}
       {showTabs && (
-        <div style={`position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--terminal-bg); display: ${view === "terminal" ? "flex" : "none"};`}>
+        <div
+          class={styles.terminalContainer}
+          style={view !== "terminal" ? { visibility: "hidden", pointerEvents: "none" } : undefined}
+        >
           {tabs.map((tab) => (
             <TerminalView
               key={tab.id}
@@ -188,28 +345,13 @@ export function App() {
               shellArgs={tab.shellArgs}
               env={tab.env}
               command={tab.command}
-              isActive={tab.id === activeTabId && view === "terminal"}
-              onExit={() => handleTabClose(tab.id)}
+              isActive={tab.id === activeTabId}
+              onExit={() => handleTabExit(tab.id)}
             />
           ))}
         </div>
       )}
-      {view === "welcome" && (
-        <div style="flex: 1; min-height: 0; overflow-y: auto;">
-          <Welcome onContinue={handleContinue} />
-        </div>
-      )}
-      {view === "selector" && (
-        <div style="flex: 1; min-height: 0; overflow-y: auto;">
-          <CLISelector results={cliResults} onSelect={handleSelect} />
-        </div>
-      )}
-      {approvalRequest && (
-        <ApprovalModal
-          request={approvalRequest}
-          onResolved={() => setApprovalRequest(null)}
-        />
-      )}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
