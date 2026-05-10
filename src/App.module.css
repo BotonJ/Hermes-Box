@@ -21,3 +21,10 @@
   overflow: hidden;
   background: var(--terminal-bg);
 }
+
+.terminalContainerHidden {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  visibility: hidden;
+}

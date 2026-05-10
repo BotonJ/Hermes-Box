@@ -9,6 +9,7 @@ use tauri::{ipc::Channel, AppHandle, Emitter, Manager};
 
 pub(crate) struct PtySession {
     writer: Box<dyn Write + Send>,
+    master: Box<dyn portable_pty::MasterPty + Send>,
     child_killer: Box<dyn ChildKiller + Send + Sync>,
     _child: Box<dyn portable_pty::Child + Send + Sync>,
 }
@@ -114,6 +115,7 @@ pub async fn pty_spawn(
 
     let session = PtySession {
         writer,
+        master: pair.master,
         child_killer,
         _child: child,
     };
@@ -147,8 +149,19 @@ pub async fn pty_resize(
     cols: u16,
     rows: u16,
 ) -> Result<(), String> {
-    // TODO: store PtyPair.master to support resize
-    let _ = (&sessions, &session_id, cols, rows);
+    let map = sessions.lock().unwrap();
+    let session = map
+        .get(&session_id)
+        .ok_or_else(|| format!("session {session_id} not found"))?;
+    session
+        .master
+        .resize(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .map_err(|e| format!("resize failed: {e}"))?;
     Ok(())
 }
 

@@ -5,7 +5,7 @@ import {
   disableAutostart,
   isAutostartEnabled,
 } from "../lib/autostart";
-import { generateApprovalConfig } from "../lib/approval-bridge";
+import { generateApprovalConfig, setupBridgeDir } from "../lib/approval-bridge";
 import {
   getThemeMode,
   setThemeMode,
@@ -44,7 +44,11 @@ export function Settings({ onBack }: SettingsProps) {
   }, []);
 
   useEffect(() => {
-    homeDir().then((home) => setBridgeDir((prev) => prev || `${home}/.hermesbox/bridge`));
+    homeDir().then((home) => {
+      const dir = `${home}/.hermesbox/bridge`;
+      setBridgeDir((prev) => prev || dir);
+      setupBridgeDir(dir).catch(() => {});
+    });
   }, []);
 
   async function handleToggle() {

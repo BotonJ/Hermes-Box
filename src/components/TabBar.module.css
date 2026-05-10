@@ -12,6 +12,12 @@
   padding: 0 var(--space-sm);
   padding-top: var(--space-sm);
   user-select: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabRow::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {

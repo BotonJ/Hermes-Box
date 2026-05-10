@@ -16,6 +16,7 @@ pub struct ApprovalRequest {
 
 /// Escape a string for use inside a YAML double-quoted scalar.
 /// Handles `\`, `"`, and control characters per YAML 1.2 spec.
+#[allow(dead_code)]
 fn escape_yaml_double_quoted(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
     for ch in input.chars() {
@@ -33,8 +34,7 @@ fn escape_yaml_double_quoted(input: &str) -> String {
 }
 
 pub fn approval_dir() -> (PathBuf, PathBuf) {
-    let home = std::env::var("HOME")
-        .expect("HOME environment variable not set — required for approval system");
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
     let base = PathBuf::from(home).join(".hermesbox/approvals");
     (base.join("pending"), base.join("results"))
 }
@@ -146,10 +146,15 @@ pub fn start_watcher(app: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                     .any(|p| p.extension().map(|e| e == "json").unwrap_or(false));
                 if is_create_or_rename && is_json {
                     for path in &event.paths {
-                        if let (Some(id), Ok(raw)) = (
-                            path.file_stem().and_then(|s| s.to_str()),
-                            std::fs::read_to_string(path),
-                        ) {
+                        if let Some(id) = path.file_stem().and_then(|s| s.to_str()) {
+                            // Brief delay to avoid reading a partially-written file.
+                            // The bridge script uses write+rename, but some filesystems
+                            // may emit events before rename completes.
+                            std::thread::sleep(std::time::Duration::from_millis(50));
+                            let raw = match std::fs::read_to_string(path) {
+                                Ok(r) => r,
+                                Err(_) => continue,
+                            };
                             if let Some(req) = parse_approval_request(id, &raw) {
                                 let _ = app.emit("approval-request", &req);
                                 window::show_and_focus_main_window(&app);
@@ -178,12 +183,66 @@ pub fn start_watcher(app: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
         // Keep the thread alive for the lifetime of the app.
         // JoinHandle is intentionally dropped — watcher runs until process exit.
-        loop {
-            std::thread::park();
-        }
+        std::thread::sleep(std::time::Duration::MAX);
     });
 
     Ok(())
+}
+
+/// Copy bridge scripts from the project's bridge/ directory to ~/.hermesbox/bridge/.
+/// This handles first-run setup where the runtime bridge directory doesn't exist yet.
+fn auto_setup_bridge(bridge_dir: &str) -> Result<(), String> {
+    let dest = PathBuf::from(bridge_dir.trim_end_matches('/'));
+    std::fs::create_dir_all(&dest).map_err(|e| format!("failed to create bridge dir: {e}"))?;
+
+    // Development mode: copy from project root bridge/ directory
+    // Look relative to the executable, then fall back to CWD
+    let source_candidates = [
+        std::env::current_dir().ok().map(|d| d.join("bridge")),
+        std::env::current_exe()
+            .ok()
+            .and_then(|e| e.parent().map(|p| p.join("../../bridge").to_path_buf())),
+    ];
+
+    let source_dir = source_candidates
+        .iter()
+        .flatten()
+        .find(|d| d.exists() && d.join("claude-code-approval-bridge.sh").exists())
+        .ok_or_else(|| "no bridge/ directory found in project or executable path".to_string())?
+        .clone();
+
+    for entry in std::fs::read_dir(&source_dir).map_err(|e| format!("read bridge dir: {e}"))? {
+        let entry = entry.map_err(|e| format!("read entry: {e}"))?;
+        let src_file = entry.path();
+        if src_file
+            .extension()
+            .is_some_and(|e| e == "sh")
+        {
+            let file_name = src_file.file_name().unwrap();
+            let dest_file = dest.join(file_name);
+            if !dest_file.exists() {
+                std::fs::copy(&src_file, &dest_file)
+                    .map_err(|e| format!("copy {}: {e}", file_name.to_string_lossy()))?;
+                // Preserve executable permission on Unix
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(meta) = dest_file.metadata() {
+                        let mut perms = meta.permissions();
+                        perms.set_mode(perms.mode() | 0o755);
+                        let _ = std::fs::set_permissions(&dest_file, perms);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn setup_bridge_dir(bridge_dir: String) -> Result<(), String> {
+    auto_setup_bridge(&bridge_dir)
 }
 
 #[tauri::command]
@@ -270,10 +329,13 @@ pub fn generate_approval_config(config_type: String, bridge_dir: String) -> Resu
     };
     let script_path = PathBuf::from(bridge_dir.trim_end_matches('/')).join(script_name);
     if !script_path.exists() {
-        return Err(format!(
-            "bridge script not found: {}. Please check the bridge directory.",
-            script_path.display()
-        ));
+        // Try to auto-setup: copy bridge scripts from project directory
+        if let Err(e) = auto_setup_bridge(&bridge_dir) {
+            return Err(format!(
+                "bridge script not found: {}. Auto-setup failed: {e}",
+                script_path.display()
+            ));
+        }
     }
 
     if target_path.exists() {

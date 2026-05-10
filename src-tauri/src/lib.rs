@@ -105,6 +105,7 @@ pub fn run() {
             approval::approve_command,
             approval::deny_command,
             approval::generate_approval_config,
+            approval::setup_bridge_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

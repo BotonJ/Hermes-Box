@@ -333,8 +333,7 @@ export function App() {
       )}
       {showTabs && (
         <div
-          class={styles.terminalContainer}
-          style={view !== "terminal" ? { visibility: "hidden", pointerEvents: "none" } : undefined}
+          class={view === "terminal" ? styles.terminalContainer : `${styles.terminalContainer} ${styles.terminalContainerHidden}`}
         >
           {tabs.map((tab) => (
             <TerminalView
