@@ -278,6 +278,10 @@ pub fn toggle_window_visibility(app: &tauri::AppHandle) {
 
 pub fn show_and_focus_main_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        // Unminimize first — macOS minimized windows report is_visible() == true
+        if window.is_minimized().unwrap_or(false) {
+            let _ = window.unminimize();
+        }
         if !window.is_visible().unwrap_or(true) {
             if let Some(pos) = load_position_from_disk(app) {
                 if let Err(e) = window.set_position(tauri::Position::Physical(

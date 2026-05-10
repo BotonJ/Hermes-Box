@@ -89,4 +89,24 @@ Rust:      37 tests passed (cargo test 未重新运行，上次通过)
 - [ ] 超时测试：不操作等待 120 秒验证默认拒绝
 - [ ] 多请求并发测试：同时发送多个审批请求
 - [ ] tauri.conf.json：添加 `visible: false` 对齐 v1 行为，避免 Vite 崩溃时白屏
-- [ ] Claude Code hook 测试：配置 `.claude/settings.json` 的 PreToolUse hook
+- [x] Claude Code hook 测试：配置 `~/.claude/hooks/hooks.json` 的 PreToolUse hook — 已通过
+
+## Claude Code 真实环境测试
+
+配置 `~/.claude/hooks/hooks.json` 添加 PreToolUse hook，指向 `claude-code-approval-bridge.sh`。
+
+### 测试结果
+
+| 场景 | 状态 | 备注 |
+|------|------|------|
+| Claude Code Bash → 审批卡片 | 部分通过 | 仅不在 `permissions.allow` 中的命令触发 |
+| 窗口最小化 → 自动弹出 | 通过 | `unminimize` 修复生效 |
+
+### 发现的问题
+
+1. **审批卡片出现概率**：`settings.json` 的 `permissions.allow` 预授权了大量命令（`python3:*`, `cat:*`, `ls:*` 等），这些命令不经过 PreToolUse hook
+2. **窗口最小化不可见**（已修复）：macOS 最小化窗口 `is_visible()` 返回 `true`，需额外 `is_minimized()` + `unminimize()`
+
+### 代码变更
+
+- `src-tauri/src/window.rs`：`show_and_focus_main_window` 添加 `is_minimized()` 检查和 `unminimize()` 调用
