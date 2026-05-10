@@ -21,10 +21,18 @@ pub fn run() {
             MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
         ))
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
+                if let (Ok(position), Ok(size)) = (window.outer_position(), window.inner_size()) {
+                    let pos = window::WindowPosition {
+                        x: position.x,
+                        y: position.y,
+                        width: size.width,
+                        height: size.height,
+                    };
+                    window::save_position_to_disk(window.app_handle(), &pos);
+                }
                 let _ = window.hide();
             }
         })
@@ -56,19 +64,16 @@ pub fn run() {
                         .build(),
                 )?;
 
-                #[cfg(target_os = "macos")]
-                {
-                    if let Some(w) = handle.get_webview_window("main") {
-                        // Defer NSPanel style application to after the window event
-                        // loop has fully initialized — calling it during setup
-                        // triggers a foreign ObjC exception in tao 0.34.x.
-                        let w_clone = w.clone();
-                        std::thread::spawn(move || {
-                            std::thread::sleep(std::time::Duration::from_millis(100));
-                            window::apply_ns_panel_style(&w_clone);
-                        });
-                    }
-                }
+                // TODO: NSPanel style (transparent titlebar + vibrancy) is temporarily
+                // disabled. The objc msg_send! calls trigger ObjC exceptions from WebKit's
+                // Link Decoration Filtering which requires specific thread context.
+                // Revisit with objc2 crate or Tauri's window-vibrancy plugin.
+                // #[cfg(target_os = "macos")]
+                // {
+                //     if let Some(w) = handle.get_webview_window("main") {
+                //         window::apply_ns_panel_style(&w);
+                //     }
+                // }
 
                 let minimized = std::env::args()
                     .take_while(|arg| arg != "--")

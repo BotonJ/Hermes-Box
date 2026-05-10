@@ -21,6 +21,7 @@ pub fn create_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 .ok_or("no default window icon configured — check tauri.conf.json icons")?,
         )
         .menu(&menu)
+        .show_menu_on_left_click(false)
         .tooltip("HermesBox")
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "show_hide" => {
