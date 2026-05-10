@@ -7,7 +7,15 @@ use tauri::{
 use crate::window;
 
 pub fn create_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let show_hide = MenuItem::with_id(app, "show_hide", "Show HermesBox", true, None::<&str>)?;
+    let initial_visible = app
+        .get_webview_window("main")
+        .is_some_and(|w| w.is_visible().unwrap_or(true));
+    let initial_label = if initial_visible {
+        "Hide HermesBox"
+    } else {
+        "Show HermesBox"
+    };
+    let show_hide = MenuItem::with_id(app, "show_hide", initial_label, true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings...", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;

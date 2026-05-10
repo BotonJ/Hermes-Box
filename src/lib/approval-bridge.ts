@@ -39,3 +39,7 @@ export function generateApprovalConfig(
     bridgeDir,
   });
 }
+
+export function setupBridgeDir(bridgeDir: string): Promise<void> {
+  return invoke("setup_bridge_dir", { bridgeDir });
+}

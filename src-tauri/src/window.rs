@@ -126,6 +126,7 @@ pub fn read_window_position(window: &tauri::WebviewWindow) -> Option<WindowPosit
 }
 
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 mod ns_constants {
     pub const NS_NORMAL_WINDOW_LEVEL: i32 = 0;
     pub const NS_COLLECTION_JOIN_ALL_SPACES: usize = 1 << 0;
@@ -137,6 +138,7 @@ mod ns_constants {
 }
 
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 pub fn apply_ns_panel_style(window: &tauri::WebviewWindow) {
     use ns_constants::*;
 
@@ -180,6 +182,7 @@ pub fn apply_ns_panel_style(window: &tauri::WebviewWindow) {
 /// Find and hide the NSTitlebarContainer view so content extends into the
 /// titlebar area without any visible titlebar chrome.
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 unsafe fn hide_titlebar_container(ns_window: *mut objc::runtime::Object) {
     let content_view: *mut objc::runtime::Object = msg_send![ns_window, contentView];
     if content_view.is_null() {
@@ -218,6 +221,7 @@ unsafe fn hide_titlebar_container(ns_window: *mut objc::runtime::Object) {
 /// Create an NSVisualEffectView and insert it behind the content view
 /// to achieve the vibrancy/blurred-background effect.
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 unsafe fn apply_vibrancy_to_content(ns_window: *mut objc::runtime::Object) {
     use ns_constants::*;
 
@@ -282,7 +286,7 @@ pub fn show_and_focus_main_window(app: &tauri::AppHandle) {
         if window.is_minimized().unwrap_or(false) {
             let _ = window.unminimize();
         }
-        if !window.is_visible().unwrap_or(true) {
+        if !window.is_visible().unwrap_or(false) {
             if let Some(pos) = load_position_from_disk(app) {
                 if let Err(e) = window.set_position(tauri::Position::Physical(
                     tauri::PhysicalPosition::new(pos.x, pos.y),
