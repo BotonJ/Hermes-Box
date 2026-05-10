@@ -1,11 +1,13 @@
 import { useState, useEffect } from "preact/hooks";
 import { platform } from "@tauri-apps/plugin-os";
 import { homeDir } from "@tauri-apps/api/path";
+import { listen } from "@tauri-apps/api/event";
 import { Welcome } from "./components/Welcome";
 import { CLISelector } from "./components/CLISelector";
 import { TabBar, type TabInfo } from "./components/TabBar";
 import { TerminalView } from "./components/TerminalView";
 import { DebugOverlay } from "./components/DebugOverlay";
+import { ApprovalModal, type ApprovalRequest } from "./components/ApprovalModal";
 import { detectAllCLIs, CLI_REGISTRY, type DetectResult } from "./lib/cli-detect";
 import { execLookup } from "./lib/exec-lookup";
 import { fileExists } from "./lib/file-exists";
@@ -54,6 +56,15 @@ export function App() {
       error: `${m.label} not found. Please install it first.`,
     })),
   );
+  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
+
+  // Listen for approval requests from Rust backend
+  useEffect(() => {
+    const unlisten = listen<ApprovalRequest>("approval-request", (event) => {
+      setApprovalRequest(event.payload);
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
 
   // Detect CLIs when entering selector view
   useEffect(() => {
@@ -192,6 +203,12 @@ export function App() {
         <div style="flex: 1; min-height: 0; overflow-y: auto;">
           <CLISelector results={cliResults} onSelect={handleSelect} />
         </div>
+      )}
+      {approvalRequest && (
+        <ApprovalModal
+          request={approvalRequest}
+          onResolved={() => setApprovalRequest(null)}
+        />
       )}
     </div>
   );
