@@ -1,0 +1,29 @@
+pty(4) — FreeBSD Kernel Interfaces Manual
+==========================================
+
+## NAME
+pty -- old-style compatibility pseudo-terminal driver
+
+## SYNOPSIS
+device pty
+
+## DESCRIPTION
+The pty driver provides support for the traditional BSD naming scheme that was used for accessing pseudo-terminals before it was replaced by pts(4). This traditional naming is still used in Linux.
+
+When the device /dev/ptyXX is being opened, a new terminal shall be created with the pts(4) driver. A device node for this terminal shall be created, which has the name /dev/ttyXX.
+
+The pty driver also provides a cloning System V /dev/ptmx device. New code should not try to allocate pseudo-terminals using this interface. It is only provided for compatibility with older C libraries that tried to open such devices when posix_openpt(2) was being called, and for running Linux binaries.
+
+## FILES
+- /dev/pty[l-sL-S][0-9a-v] — Pseudo-terminal master devices
+- /dev/tty[l-sL-S][0-9a-v] — Pseudo-terminal slave devices
+- /dev/ptmx — Control device
+
+## SEE ALSO
+posix_openpt(2), pts(4), tty(4)
+
+## HISTORY
+A pseudo-terminal driver appeared in 4.2BSD.
+
+## BUGS
+Unlike previous implementations, the master and slave device nodes are destroyed when the PTY becomes unused. A call to stat(2) on a nonexistent master device will already cause a new master device node to be created. The master device can only be destroyed by opening and closing it. The pty driver cannot be unloaded, because it cannot determine if it is being used.

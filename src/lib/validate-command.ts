@@ -28,7 +28,7 @@ export function validateCommandPath(command: string): string {
   return command;
 }
 
-/** Wraps command in double quotes for PTY input. Relies on validateCommandPath having rejected metacharacters. */
+/** Passes command as-is for PTY input. validateCommandPath already rejects metacharacters. */
 export function escapeForPty(command: string): string {
-  return `"${command.replace(/"/g, '\\"')}"`;
+  return command;
 }

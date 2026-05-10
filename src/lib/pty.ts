@@ -42,6 +42,7 @@ interface SpawnOptions {
   rows?: number;
   env?: Record<string, string>;
   cwd?: string;
+  execCommand?: string;
 }
 
 interface PtyEventMsg {
@@ -76,6 +77,8 @@ export function spawn(
     sessionId,
     command: file,
     args: argsArr,
+    env: options?.env ?? {},
+    execCommand: options?.execCommand ?? "",
     cwd: options?.cwd ?? "/tmp",
     cols: options?.cols ?? 80,
     rows: options?.rows ?? 24,

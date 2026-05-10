@@ -1,0 +1,45 @@
+pty — Pseudo-terminal utilities (Python)
+=========================================
+
+Source: Lib/pty.py (Python 3.14)
+
+## Overview
+The pty module defines operations for handling the pseudo-terminal concept: starting another process and being able to write to and read from its controlling terminal programmatically.
+
+Availability: Unix only. (Linux, FreeBSD, macOS tested)
+
+## Functions
+
+### pty.fork()
+Fork. Connect the child's controlling terminal to a pseudo-terminal. Return value is (pid, fd).
+
+- Returns (pid, fd) where pid=0 in child, fd=invalid in child
+- Parent gets child's pid and fd connected to child's controlling terminal
+- Warning: On macOS, unsafe when mixed with higher-level system APIs including urllib.request
+
+### pty.openpty()
+Open a new pseudo-terminal pair. Uses os.openpty() if possible.
+
+- Returns (master, slave) file descriptors
+
+### pty.spawn(argv, master_read, stdin_read)
+Spawn a process, and connect its controlling terminal with the current process's standard io.
+
+- A loop copies STDIN of current process to child and child output to STDOUT
+- master_read callback: passed master's fd, should return byte string (up to 1024 bytes)
+- stdin_read callback: passed fd 0, should return byte string
+- Return empty byte string from callback = EOF condition
+- If stdin_read signals EOF → spawn loops forever (unless child quits without input)
+- Returns exit status from os.waitpid()
+- os.waitstatus_to_exitcode() converts exit status to exit code
+- Raises auditing event pty.spawn with argument argv
+
+Changed in version 3.4: spawn() now returns the status value from os.waitpid()
+
+## Example (mimics Unix script(1) command)
+Records all input and output of a terminal session in a "typescript".
+
+## Related Modules
+- os.openpty() — low-level PTY pair opening
+- tty — terminal control functions
+- fcntl — fcntl and ioctl system calls

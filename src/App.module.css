@@ -1,0 +1,23 @@
+.app {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+}
+
+.contentArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.terminalContainer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--terminal-bg);
+}

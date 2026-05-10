@@ -90,7 +90,7 @@ describe("captureShellEnv", () => {
     await captureShellEnv(mockRun);
 
     expect(capturedCmd).toBe("/bin/zsh");
-    expect(capturedArgs).toEqual(["-lic", "env"]);
+    expect(capturedArgs).toEqual(["-lc", "env"]);
   });
 
   it("accepts custom options", async () => {

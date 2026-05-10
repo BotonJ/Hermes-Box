@@ -9,7 +9,7 @@ export async function captureShellEnv(
   options?: Partial<CaptureOptions>,
 ): Promise<Record<string, string>> {
   const shell = options?.shell ?? "/bin/zsh";
-  const args = options?.args ?? ["-lic", "env"];
+  const args = options?.args ?? ["-lc", "env"];
   const timeoutMs = options?.timeoutMs ?? 5000;
 
   const output = await runCommand(shell, args, timeoutMs);
@@ -87,6 +87,11 @@ export function sanitizeEnv(env: Record<string, string>): Record<string, string>
     if (ALLOWED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
       result[key] = value;
     }
+  }
+  // Pass PS1 through with bash \[ \] stripped — xterm.js doesn't understand them.
+  // This prevents conda's bash-style prompt from showing literal \[\] in zsh.
+  if (env.PS1) {
+    result.PS1 = env.PS1.replace(/\\\[|\\\]/g, "");
   }
   return result;
 }
