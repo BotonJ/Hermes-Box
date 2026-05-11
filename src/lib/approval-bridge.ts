@@ -33,8 +33,8 @@ export function listPendingApprovals(): Promise<ApprovalRequest[]> {
 export function generateApprovalConfig(
   configType: "claude" | "hermes",
   bridgeDir: string,
-): Promise<void> {
-  return invoke("generate_approval_config", {
+): Promise<string> {
+  return invoke<string>("generate_approval_config", {
     configType,
     bridgeDir,
   });

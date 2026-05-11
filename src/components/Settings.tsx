@@ -81,8 +81,8 @@ export function Settings({ onBack }: SettingsProps) {
   async function handleGenerateConfig(type: "claude" | "hermes") {
     setConfigMsg(null);
     try {
-      await generateApprovalConfig(type, bridgeDir);
-      setConfigMsg({ type: "success", message: t("settings.success") });
+      const msg = await generateApprovalConfig(type, bridgeDir);
+      setConfigMsg({ type: "success", message: msg });
     } catch (err: unknown) {
       setConfigMsg({ type: "error", message: getErrorMessage(err) });
     }
