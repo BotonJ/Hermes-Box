@@ -33,7 +33,7 @@ interface PtyInstance {
   onData: (listener: (data: unknown) => void) => { dispose: () => void };
   onExit: (listener: (data: { exitCode: number }) => void) => { dispose: () => void };
   write(data: string): void;
-  resize(cols: number, rows: number): void;
+  resize(cols: number, rows: number): Promise<void>;
   kill(signal?: string): void;
 }
 
@@ -105,10 +105,8 @@ export function spawn(
         data: Array.from(new TextEncoder().encode(data)),
       }).catch((e) => console.error("[pty] write error:", e));
     },
-    resize(cols: number, rows: number) {
-      invoke("pty_resize", { sessionId, cols, rows }).catch((e) =>
-        console.error("[pty] resize error:", e),
-      );
+    resize(cols: number, rows: number): Promise<void> {
+      return invoke("pty_resize", { sessionId, cols, rows });
     },
     kill(_signal?: string) {
       invoke("pty_kill", { sessionId }).catch(() => {});

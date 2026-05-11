@@ -41,7 +41,7 @@ const { mockOpen, mockFitAddonFit, MockTerminal, MockFitAddon, MockPty } =
       onData = vi.fn();
       onExit = vi.fn();
       write = vi.fn();
-      resize = vi.fn();
+      resize = vi.fn().mockResolvedValue(undefined);
       kill = vi.fn();
     }
 
@@ -68,7 +68,7 @@ installROMock();
 vi.mock("@xterm/xterm", () => ({ Terminal: MockTerminal }));
 vi.mock("@xterm/addon-fit", () => ({ FitAddon: MockFitAddon }));
 vi.mock("../lib/pty", () => ({ spawn: () => new MockPty() }));
-vi.mock("../lib/use-terminal-fit", () => ({ useTerminalFit: () => {} }));
+vi.mock("../lib/use-terminal-fit", () => ({ useTerminalFit: () => ({ scheduleFit: vi.fn() }) }));
 vi.mock("../lib/validate-command", () => ({
   validateCommandPath: vi.fn(),
   escapeForPty: vi.fn(),

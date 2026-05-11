@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "preact/hooks";
+import { useRef, useEffect, useCallback } from "preact/hooks";
 import type { FitAddon } from "@xterm/addon-fit";
 
 const MIN_COLS = 2;
@@ -13,7 +13,7 @@ interface UseTerminalFitOptions {
 export function useTerminalFit({ containerRef, fitAddonRef }: UseTerminalFitOptions) {
   const timerRef = useRef(0);
 
-  const scheduleFit = () => {
+  const scheduleFit = useCallback(() => {
     clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       try {
@@ -27,7 +27,7 @@ export function useTerminalFit({ containerRef, fitAddonRef }: UseTerminalFitOpti
         // Ignore fit errors during transitions
       }
     }, DEBOUNCE_MS);
-  };
+  }, [fitAddonRef]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -43,5 +43,7 @@ export function useTerminalFit({ containerRef, fitAddonRef }: UseTerminalFitOpti
       window.removeEventListener("resize", scheduleFit);
       observer.disconnect();
     };
-  }, [containerRef]);
+  }, [containerRef, scheduleFit]);
+
+  return { scheduleFit };
 }

@@ -31,13 +31,14 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
   const onExitRef = useRef(onExit);
   onExitRef.current = onExit;
   const activeRef = useRef(isActive);
+  const lastResizeRef = useRef<{ cols: number; rows: number } | null>(null);
   const pendingDataRef = useRef<{ chunks: Uint8Array[]; bytes: number }>({ chunks: [], bytes: 0 });
   const promptSpStripped = useRef(false);
   const spawnPtyFnRef = useRef<(() => void) | null>(null);
   const ptyDisposedRef = useRef(false);
   const [fontSize, setFontSize] = useState(14);
 
-  useTerminalFit({
+  const { scheduleFit } = useTerminalFit({
     containerRef,
     fitAddonRef: fitRef,
   });
@@ -60,11 +61,11 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
 
   // Sync fontSize to terminal and re-fit
   useEffect(() => {
-    if (termRef.current && fitRef.current) {
+    if (termRef.current) {
       termRef.current.options.fontSize = fontSize;
-      fitRef.current.fit();
+      scheduleFit();
     }
-  }, [fontSize]);
+  }, [fontSize, scheduleFit]);
 
   // Create terminal, open when container is visible AND tab is active
   useEffect(() => {
@@ -98,6 +99,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
         execCommand: command || undefined,
       });
       ptyRef.current = pty;
+      lastResizeRef.current = { cols: term.cols, rows: term.rows };
 
       let ptyReady = false;
       ptyDisposedRef.current = false;
@@ -155,7 +157,13 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
 
       term.onResize((e: { cols: number; rows: number }) => {
         if (!ptyReady) return;
-        pty.resize(e.cols, e.rows);
+        if (lastResizeRef.current &&
+            e.cols === lastResizeRef.current.cols &&
+            e.rows === lastResizeRef.current.rows) {
+          return;
+        }
+        lastResizeRef.current = { cols: e.cols, rows: e.rows };
+        pty.resize(e.cols, e.rows).catch(() => {});
       });
 
       pty.onExit(({ exitCode }: { exitCode: number }) => {
@@ -194,6 +202,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       term.dispose();
       termRef.current = null;
       ptyRef.current = null;
+      lastResizeRef.current = null;
       fitRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -6,10 +6,12 @@ import { TerminalView } from "./TerminalView";
 
 let resizeCallback: ResizeObserverCallback | null = null;
 
-const { mockOpen, mockFitAddonFit, MockTerminal, MockFitAddon, MockPty } =
+const { mockOpen, mockFitAddonFit, MockTerminal, MockFitAddon, MockPty, lastSpawnedPty, getOnResizeHandler } =
   vi.hoisted(() => {
     const mockOpen = vi.fn();
     const mockFitAddonFit = vi.fn();
+    let _lastSpawnedPty: any = null;
+    let _onResizeHandler: ((e: { cols: number; rows: number }) => void) | null = null;
 
     class MockTerminal {
       open = vi.fn((container: HTMLElement) => {
@@ -20,7 +22,10 @@ const { mockOpen, mockFitAddonFit, MockTerminal, MockFitAddon, MockPty } =
       focus = vi.fn();
       dispose = vi.fn();
       onData = vi.fn();
-      onResize = vi.fn();
+      onResize = vi.fn((cb: (e: { cols: number; rows: number }) => void) => {
+        _onResizeHandler = cb;
+        return { dispose: vi.fn() };
+      });
       loadAddon = vi.fn();
       cols = 80;
       rows = 24;
@@ -34,14 +39,29 @@ const { mockOpen, mockFitAddonFit, MockTerminal, MockFitAddon, MockPty } =
     }
 
     class MockPty {
-      onData = vi.fn();
+      onData: any;
       onExit = vi.fn();
       write = vi.fn();
-      resize = vi.fn();
+      resize = vi.fn().mockResolvedValue(undefined);
       kill = vi.fn();
+      constructor() {
+        this.onData = vi.fn((cb: any) => {
+          cb(new Uint8Array([]));
+          return { dispose: vi.fn() };
+        });
+        _lastSpawnedPty = this;
+      }
     }
 
-    return { mockOpen, mockFitAddonFit, MockTerminal, MockFitAddon, MockPty };
+    return {
+      mockOpen,
+      mockFitAddonFit,
+      MockTerminal,
+      MockFitAddon,
+      MockPty,
+      lastSpawnedPty: () => _lastSpawnedPty,
+      getOnResizeHandler: () => _onResizeHandler,
+    };
   });
 
 // ── ResizeObserver mock ─────────────────────────────────────────────
@@ -64,7 +84,7 @@ installROMock();
 vi.mock("@xterm/xterm", () => ({ Terminal: MockTerminal }));
 vi.mock("@xterm/addon-fit", () => ({ FitAddon: MockFitAddon }));
 vi.mock("../lib/pty", () => ({ spawn: () => new MockPty() }));
-vi.mock("../lib/use-terminal-fit", () => ({ useTerminalFit: () => {} }));
+vi.mock("../lib/use-terminal-fit", () => ({ useTerminalFit: () => ({ scheduleFit: vi.fn() }) }));
 vi.mock("../lib/validate-command", () => ({
   validateCommandPath: vi.fn(),
   escapeForPty: vi.fn(),
@@ -252,5 +272,69 @@ describe("TerminalView — term.open() timing", () => {
     fireResize(800, 600);
 
     expect(mockOpen).not.toHaveBeenCalled();
+  });
+});
+
+describe("TerminalView — resize dedup (lastResize guard)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resizeCallback = null;
+    installROMock();
+  });
+
+  function renderActiveAndOpen() {
+    render(
+      <TerminalView
+        tabId="t1"
+        shell="/bin/bash"
+        shellArgs={[]}
+        isActive={true}
+      />,
+    );
+
+    // Fire resize observer to trigger term.open() + spawnPty
+    fireResize(800, 600);
+
+    return lastSpawnedPty()!;
+  }
+
+  it("same-size onResize fires pty.resize only once", () => {
+    const pty = renderActiveAndOpen();
+    pty.resize.mockClear();
+
+    const onResize = getOnResizeHandler();
+    expect(onResize).not.toBeNull();
+    onResize!({ cols: 100, rows: 30 });
+    onResize!({ cols: 100, rows: 30 });
+
+    // With lastResize guard: should only call resize once
+    expect(pty.resize).toHaveBeenCalledTimes(1);
+    expect(pty.resize).toHaveBeenCalledWith(100, 30);
+  });
+
+  it("different sizes each trigger pty.resize", () => {
+    const pty = renderActiveAndOpen();
+    pty.resize.mockClear();
+
+    const onResize = getOnResizeHandler();
+    onResize!({ cols: 100, rows: 30 });
+    onResize!({ cols: 120, rows: 40 });
+    onResize!({ cols: 80, rows: 25 });
+
+    expect(pty.resize).toHaveBeenCalledTimes(3);
+  });
+
+  it("mix of same and different sizes dedupes correctly", () => {
+    const pty = renderActiveAndOpen();
+    pty.resize.mockClear();
+
+    const onResize = getOnResizeHandler();
+    onResize!({ cols: 100, rows: 30 });
+    onResize!({ cols: 100, rows: 30 }); // duplicate — skip
+    onResize!({ cols: 120, rows: 40 }); // different — fire
+    onResize!({ cols: 120, rows: 40 }); // duplicate — skip
+    onResize!({ cols: 100, rows: 30 }); // different — fire
+
+    expect(pty.resize).toHaveBeenCalledTimes(3);
   });
 });
