@@ -1,69 +1,83 @@
 const STORAGE_KEY = "hermesbox:theme";
 
-export type ThemeMode = "dark" | "light" | "system";
+/** All available theme presets. Each maps to a CSS data-theme value. */
+export const THEME_PRESETS = [
+  "dark",
+  "grass",
+  "ocean",
+  "sunset",
+  "lavender",
+  "gruvbox-dark",
+  "atom-one-light",
+  "system",
+] as const;
+
+export type ThemeChoice = (typeof THEME_PRESETS)[number];
 export type Theme = "dark" | "light";
 
 let systemListener: (() => void) | null = null;
 
-/** Returns the stored theme mode, defaulting to "dark". */
-export function getThemeMode(): ThemeMode {
+function isThemePreset(v: string): v is ThemeChoice {
+  return (THEME_PRESETS as readonly string[]).includes(v);
+}
+
+/** Returns the stored theme choice, migrating old "light" → "grass". Defaults to "dark". */
+export function getTheme(): ThemeChoice {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored;
+    // Migrate old "light" value to "grass"
+    if (stored === "light") {
+      localStorage.setItem(STORAGE_KEY, "grass");
+      return "grass";
     }
+    if (stored && isThemePreset(stored)) return stored;
   } catch {
     // localStorage unavailable
   }
   return "dark";
 }
 
-function applyTheme(mode: ThemeMode): void {
-  let effective: Theme;
-  if (mode === "system") {
-    effective = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  } else {
-    effective = mode;
+/** Returns the CSS data-theme value for the current choice. */
+function resolveDataTheme(choice: ThemeChoice): string {
+  if (choice === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "gruvbox-dark" : "atom-one-light";
   }
-  document.documentElement.dataset.theme = effective;
+  return choice;
 }
 
-/** Sets the theme mode and updates the DOM. Subscribes to system changes when mode is "system". */
-export function setThemeMode(mode: ThemeMode): void {
+function applyTheme(choice: ThemeChoice): void {
+  document.documentElement.dataset.theme = resolveDataTheme(choice);
+}
+
+/** Sets the theme choice and updates the DOM. */
+export function setTheme(choice: ThemeChoice): void {
   if (systemListener) {
     window.matchMedia("(prefers-color-scheme: dark)").removeEventListener("change", systemListener);
     systemListener = null;
   }
 
   try {
-    localStorage.setItem(STORAGE_KEY, mode);
+    localStorage.setItem(STORAGE_KEY, choice);
   } catch {
     // ignore
   }
 
-  applyTheme(mode);
+  applyTheme(choice);
 
-  if (mode === "system") {
+  if (choice === "system") {
     systemListener = () => applyTheme("system");
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", systemListener);
   }
 }
 
-/** Returns the effective theme, resolving "system" to the current OS preference. */
+/** Returns the effective theme (dark or light) for xterm and other consumers. */
 export function getEffectiveTheme(): Theme {
-  const mode = getThemeMode();
-  if (mode === "system") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
-  return mode;
+  const dataTheme = resolveDataTheme(getTheme());
+  // grass and atom-one-light are light themes; everything else is dark
+  return dataTheme === "grass" || dataTheme === "atom-one-light" ? "light" : "dark";
 }
 
 /** Initializes the theme system on app startup. */
 export function initTheme(): void {
-  setThemeMode(getThemeMode());
-}
-
-/** Returns the effective theme (alias for getEffectiveTheme). */
-export function getTheme(): Theme {
-  return getEffectiveTheme();
+  setTheme(getTheme());
 }
