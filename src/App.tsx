@@ -23,6 +23,7 @@ import {
 } from "./lib/approval-bridge";
 import { saveTabs, loadTabs, isRestoreEnabled } from "./lib/tab-storage";
 import { useToast } from "./lib/use-toast";
+import { playApprovalSound } from "./lib/sound";
 import styles from "./App.module.css";
 
 type View = "welcome" | "selector" | "terminal" | "settings";
@@ -85,6 +86,7 @@ export function App() {
   useEffect(() => {
     const unlisten = listenForApprovals((request) => {
       setPendingApprovals((prev) => [...prev, request]);
+      playApprovalSound(request.source ?? "claude");
     });
     return () => { unlisten.then((fn) => fn()).catch(() => {}); };
   }, []);

@@ -24,7 +24,9 @@
     "success": "Config generated successfully",
     "error": "Operation failed",
     "sessionRestore": "Session Restore",
-    "sessionRestoreDesc": "Automatically restore tabs from your last session on launch"
+    "sessionRestoreDesc": "Automatically restore tabs from your last session on launch",
+    "approvalSound": "Approval Sound",
+    "approvalSoundDesc": "Play a notification sound when an approval request arrives"
   },
   "theme": {
     "dark": "Dark",
