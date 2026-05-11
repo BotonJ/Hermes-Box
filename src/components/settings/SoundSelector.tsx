@@ -1,4 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { useState } from "preact/hooks";
 import {
   SYSTEM_SOUNDS,
   type SoundChoice,
@@ -38,22 +39,36 @@ function SoundPicker({
   onChange: (s: SoundChoice) => void;
   onCustomPathChange: (p: string) => void;
 }) {
+  const [localValue, setLocalValue] = useState(value);
+  const [localCustomPath, setLocalCustomPath] = useState(customPath);
+
   async function handlePickFile() {
     const selected = await open({
       multiple: false,
       filters: SOUND_FILTERS,
     });
     if (selected) {
+      setLocalCustomPath(selected);
+      setLocalValue("custom");
       onCustomPathChange(selected);
       onChange("custom");
     }
   }
 
-  function handlePreview() {
-    if (value === "custom" && customPath) {
-      playSoundById(customPath);
+  async function handlePreview() {
+    console.log("[SoundPicker] preview localValue:", localValue, "customPath:", localCustomPath);
+    if (localValue === "custom" && localCustomPath) {
+      await playSoundById(localCustomPath);
     } else {
-      playSoundById(value);
+      await playSoundById(localValue);
+    }
+  }
+
+  function handleChange(e: Event) {
+    const v = (e.target as HTMLSelectElement).value;
+    if (v === "custom" || SYSTEM_SOUNDS.includes(v as SystemSound)) {
+      setLocalValue(v as SoundChoice);
+      onChange(v as SoundChoice);
     }
   }
 
@@ -63,13 +78,8 @@ function SoundPicker({
       <div class={styles.soundPickerRow}>
         <select
           class={styles.soundSelect}
-          value={value}
-          onChange={(e) => {
-            const v = (e.target as HTMLSelectElement).value;
-            if (v === "custom" || SYSTEM_SOUNDS.includes(v as SystemSound)) {
-              onChange(v as SoundChoice);
-            }
-          }}
+          value={localValue}
+          onChange={handleChange}
         >
           {SYSTEM_SOUNDS.map((s) => (
             <option key={s} value={s}>
@@ -77,7 +87,7 @@ function SoundPicker({
             </option>
           ))}
           <option value="custom">
-            {customPath ? `Custom: ${shortenPath(customPath)}` : "Custom..."}
+            {localCustomPath ? `Custom: ${shortenPath(localCustomPath)}` : "Custom..."}
           </option>
         </select>
         <button
@@ -88,7 +98,7 @@ function SoundPicker({
         >
           {t("settings.previewSound")}
         </button>
-        {value === "custom" && (
+        {localValue === "custom" && (
           <button
             class={styles.previewButton}
             type="button"
