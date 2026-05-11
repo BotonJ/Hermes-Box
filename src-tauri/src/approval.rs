@@ -196,9 +196,11 @@ fn resource_dir_candidates(app: &AppHandle) -> Vec<PathBuf> {
     if let Ok(path) = app.path().resource_dir() {
         candidates.push(path);
     }
-    // Dev mode: compiled-in manifest path
+    // Dev mode: compiled-in manifest path (parent of src-tauri/ = project root)
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    candidates.push(manifest_dir);
+    if let Some(parent) = manifest_dir.parent() {
+        candidates.push(parent.to_path_buf());
+    }
     candidates
 }
 

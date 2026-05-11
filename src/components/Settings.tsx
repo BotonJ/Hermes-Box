@@ -15,6 +15,7 @@ import { getLocale, setLocale, t } from "../lib/i18n";
 import { useLocale } from "../lib/use-locale";
 import { isRestoreEnabled, setRestoreEnabled } from "../lib/tab-storage";
 import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
+import { SoundSelector } from "./settings/SoundSelector";
 import { ThemeModeSelector } from "./settings/ThemeModeSelector";
 import { LanguageSelector } from "./settings/LanguageSelector";
 import { ApprovalConfig } from "./settings/ApprovalConfig";
@@ -140,21 +141,7 @@ export function Settings({ onBack }: SettingsProps) {
         </button>
       </div>
 
-      <div class={styles.section}>
-        <div class={styles.sectionLabel}>
-          <p class={styles.sectionTitle}>{t("settings.approvalSound")}</p>
-          <p class={styles.sectionDesc}>{t("settings.approvalSoundDesc")}</p>
-        </div>
-        <button
-          class={styles.toggle}
-          role="switch"
-          aria-label={t("settings.approvalSound")}
-          aria-checked={approvalSound}
-          onClick={handleToggleSound}
-        >
-          <span class={styles.toggleKnob} />
-        </button>
-      </div>
+      <SoundSelector enabled={approvalSound} onToggle={handleToggleSound} />
 
       <div class={styles.section}>
         <div class={styles.sectionLabel}>
