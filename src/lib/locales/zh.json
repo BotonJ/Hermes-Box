@@ -24,7 +24,9 @@
     "success": "配置生成成功",
     "error": "操作失败",
     "sessionRestore": "会话恢复",
-    "sessionRestoreDesc": "启动时自动恢复上次会话的标签页"
+    "sessionRestoreDesc": "启动时自动恢复上次会话的标签页",
+    "approvalSound": "审批音效",
+    "approvalSoundDesc": "收到审批请求时播放提示音"
   },
   "theme": {
     "dark": "深色",

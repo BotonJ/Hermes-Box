@@ -189,20 +189,39 @@ pub fn start_watcher(app: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Get Tauri resource directory candidates from the app handle.
+fn resource_dir_candidates(app: &AppHandle) -> Vec<PathBuf> {
+    use tauri::Manager;
+    let mut candidates = Vec::new();
+    if let Ok(path) = app.path().resource_dir() {
+        candidates.push(path);
+    }
+    // Dev mode: compiled-in manifest path
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    candidates.push(manifest_dir);
+    candidates
+}
+
 /// Copy bridge scripts from the project's bridge/ directory to ~/.hermesbox/bridge/.
 /// This handles first-run setup where the runtime bridge directory doesn't exist yet.
-fn auto_setup_bridge(bridge_dir: &str) -> Result<(), String> {
+fn auto_setup_bridge(bridge_dir: &str, extra_candidates: Vec<PathBuf>) -> Result<(), String> {
     let dest = PathBuf::from(bridge_dir.trim_end_matches('/'));
     std::fs::create_dir_all(&dest).map_err(|e| format!("failed to create bridge dir: {e}"))?;
 
-    // Development mode: copy from project root bridge/ directory
-    // Look relative to the executable, then fall back to CWD
-    let source_candidates = [
+    // Search order:
+    // 1. Extra candidates (Tauri resource dir + CARGO_MANIFEST_DIR from caller)
+    // 2. Current working directory
+    // 3. Relative to current executable (production bundle)
+    let mut source_candidates: Vec<Option<PathBuf>> = extra_candidates
+        .into_iter()
+        .map(|p| Some(p.join("bridge")))
+        .collect();
+    source_candidates.extend([
         std::env::current_dir().ok().map(|d| d.join("bridge")),
         std::env::current_exe()
             .ok()
             .and_then(|e| e.parent().map(|p| p.join("../../bridge").to_path_buf())),
-    ];
+    ]);
 
     let source_dir = source_candidates
         .iter()
@@ -241,8 +260,9 @@ fn auto_setup_bridge(bridge_dir: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn setup_bridge_dir(bridge_dir: String) -> Result<(), String> {
-    auto_setup_bridge(&bridge_dir)
+pub fn setup_bridge_dir(app: AppHandle, bridge_dir: String) -> Result<(), String> {
+    let resource_candidates = resource_dir_candidates(&app);
+    auto_setup_bridge(&bridge_dir, resource_candidates)
 }
 
 #[tauri::command]
@@ -263,8 +283,12 @@ pub fn deny_command(id: String) -> Result<(), String> {
     write_result_file(&results_dir, &id, "deny")
 }
 
-#[tauri::command]
-pub fn generate_approval_config(config_type: String, bridge_dir: String) -> Result<(), String> {
+/// Pure config generation logic, testable without AppHandle.
+fn generate_approval_config_inner(
+    config_type: String,
+    bridge_dir: String,
+    extra_candidates: Vec<PathBuf>,
+) -> Result<(), String> {
     let bridge_path = Path::new(&bridge_dir);
     if !bridge_path.is_absolute() {
         return Err("bridge directory must be an absolute path".to_string());
@@ -329,8 +353,7 @@ pub fn generate_approval_config(config_type: String, bridge_dir: String) -> Resu
     };
     let script_path = PathBuf::from(bridge_dir.trim_end_matches('/')).join(script_name);
     if !script_path.exists() {
-        // Try to auto-setup: copy bridge scripts from project directory
-        if let Err(e) = auto_setup_bridge(&bridge_dir) {
+        if let Err(e) = auto_setup_bridge(&bridge_dir, extra_candidates) {
             return Err(format!(
                 "bridge script not found: {}. Auto-setup failed: {e}",
                 script_path.display()
@@ -362,6 +385,16 @@ pub fn generate_approval_config(config_type: String, bridge_dir: String) -> Resu
         .map_err(|e| format!("failed to finalize config: {e}"))?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn generate_approval_config(
+    app: AppHandle,
+    config_type: String,
+    bridge_dir: String,
+) -> Result<(), String> {
+    let extra = resource_dir_candidates(&app);
+    generate_approval_config_inner(config_type, bridge_dir, extra)
 }
 
 #[cfg(test)]
@@ -545,9 +578,10 @@ mod tests {
     fn generate_claude_config_creates_valid_json_settings() {
         with_temp_home("claude", |home| {
             let bridge = setup_bridge_scripts(home);
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "claude".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(result.is_ok(), "expected Ok, got {result:?}");
 
@@ -568,9 +602,10 @@ mod tests {
     fn generate_hermes_config_creates_yaml() {
         with_temp_home("hermes", |home| {
             let bridge = setup_bridge_scripts(home);
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "hermes".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(result.is_ok());
 
@@ -591,9 +626,10 @@ mod tests {
             fs::create_dir_all(&claude_dir).unwrap();
             fs::write(claude_dir.join("settings.json"), "existing").unwrap();
 
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "claude".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(result.is_err());
             assert!(result.unwrap_err().contains("already exists"));
@@ -602,7 +638,7 @@ mod tests {
 
     #[test]
     fn generate_config_rejects_unknown_type() {
-        let result = generate_approval_config("invalid".to_string(), "/tmp".to_string());
+        let result = generate_approval_config_inner("invalid".to_string(), "/tmp".to_string(), vec![]);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("unknown config type"));
     }
@@ -612,7 +648,7 @@ mod tests {
         with_temp_home("trailing-slash", |home| {
             let bridge = setup_bridge_scripts(home);
             let bridge_with_slash = format!("{}/", bridge.display());
-            let result = generate_approval_config("claude".to_string(), bridge_with_slash);
+            let result = generate_approval_config_inner("claude".to_string(), bridge_with_slash, vec![]);
             assert!(result.is_ok());
 
             let content = fs::read_to_string(home.join(".claude/settings.json")).unwrap();
@@ -626,9 +662,10 @@ mod tests {
         with_temp_home("missing-script", |home| {
             let bridge = home.join("empty-bridge");
             fs::create_dir_all(&bridge).unwrap();
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "claude".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(result.is_err());
             assert!(result.unwrap_err().contains("bridge script not found"));
@@ -645,7 +682,7 @@ mod tests {
 
     #[test]
     fn generate_config_rejects_relative_path() {
-        let result = generate_approval_config("claude".to_string(), "relative/path".to_string());
+        let result = generate_approval_config_inner("claude".to_string(), "relative/path".to_string(), vec![]);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("absolute path"));
     }
@@ -653,7 +690,7 @@ mod tests {
     #[test]
     fn generate_config_rejects_newline_in_path() {
         let result =
-            generate_approval_config("claude".to_string(), "/path/with\nnewline".to_string());
+            generate_approval_config_inner("claude".to_string(), "/path/with\nnewline".to_string(), vec![]);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("invalid characters"));
     }
@@ -695,9 +732,10 @@ mod tests {
                 "#!/bin/sh\necho ok",
             )
             .unwrap();
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "hermes".to_string(),
                 special_bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(
                 result.is_ok(),
@@ -726,9 +764,10 @@ mod tests {
                 "#!/bin/sh\necho ok",
             )
             .unwrap();
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "hermes".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(
                 result.is_ok(),
@@ -757,9 +796,10 @@ mod tests {
                 "#!/bin/sh\necho ok",
             )
             .unwrap();
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "hermes".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(
                 result.is_ok(),
@@ -788,9 +828,10 @@ mod tests {
                 "#!/bin/sh\necho ok",
             )
             .unwrap();
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "hermes".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(
                 result.is_ok(),
@@ -813,9 +854,10 @@ mod tests {
     fn hermes_config_yaml_output_is_valid() {
         with_temp_home("yaml-valid", |home| {
             let bridge = setup_bridge_scripts(home);
-            let result = generate_approval_config(
+            let result = generate_approval_config_inner(
                 "hermes".to_string(),
                 bridge.to_string_lossy().to_string(),
+                vec![],
             );
             assert!(result.is_ok());
 
@@ -857,5 +899,83 @@ mod tests {
         let err = write_result_file(&dir, "req-1", "delete").unwrap_err();
         assert!(err.contains("invalid action"));
         cleanup_test_dir(&dir);
+    }
+
+    #[test]
+    fn auto_setup_copies_scripts_from_extra_candidate() {
+        let src = make_test_dir("bridge-src");
+        let src_bridge = src.join("bridge");
+        fs::create_dir_all(&src_bridge).unwrap();
+        fs::write(
+            src_bridge.join("claude-code-approval-bridge.sh"),
+            "#!/bin/sh\necho src",
+        )
+        .unwrap();
+        fs::write(
+            src_bridge.join("hermes-approval-bridge.sh"),
+            "#!/bin/sh\necho src",
+        )
+        .unwrap();
+
+        let dest = make_test_dir("bridge-dest");
+        auto_setup_bridge(dest.to_string_lossy().as_ref(), vec![src.clone()]).unwrap();
+
+        assert!(dest.join("claude-code-approval-bridge.sh").exists());
+        assert!(dest.join("hermes-approval-bridge.sh").exists());
+        let content = fs::read_to_string(dest.join("claude-code-approval-bridge.sh")).unwrap();
+        assert_eq!(content, "#!/bin/sh\necho src");
+
+        cleanup_test_dir(&src);
+        cleanup_test_dir(&dest);
+    }
+
+    #[test]
+    fn auto_setup_fails_with_no_candidates() {
+        let dest = make_test_dir("bridge-dest-nocand");
+        let result = auto_setup_bridge(dest.to_string_lossy().as_ref(), vec![]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("no bridge/ directory found"));
+        cleanup_test_dir(&dest);
+    }
+
+    #[test]
+    fn generate_config_auto_deploys_bridge_from_candidates() {
+        with_temp_home("auto-deploy", |home| {
+            // Source bridge directory
+            let src = home.join("project-root");
+            let src_bridge = src.join("bridge");
+            fs::create_dir_all(&src_bridge).unwrap();
+            fs::write(
+                src_bridge.join("claude-code-approval-bridge.sh"),
+                "#!/bin/sh\necho deployed",
+            )
+            .unwrap();
+            fs::write(
+                src_bridge.join("hermes-approval-bridge.sh"),
+                "#!/bin/sh\necho deployed",
+            )
+            .unwrap();
+
+            // Destination bridge dir (empty)
+            let dest_bridge = home.join("runtime-bridge");
+            fs::create_dir_all(&dest_bridge).unwrap();
+
+            let result = generate_approval_config_inner(
+                "claude".to_string(),
+                dest_bridge.to_string_lossy().to_string(),
+                vec![src],
+            );
+            assert!(result.is_ok(), "auto-deploy should succeed: {result:?}");
+
+            // Verify the script was deployed
+            assert!(
+                dest_bridge.join("claude-code-approval-bridge.sh").exists(),
+                "script should be auto-deployed"
+            );
+            assert!(
+                home.join(".claude/settings.json").exists(),
+                "config should be generated"
+            );
+        });
     }
 }

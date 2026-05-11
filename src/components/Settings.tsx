@@ -14,6 +14,7 @@ import {
 import { getLocale, setLocale, t } from "../lib/i18n";
 import { useLocale } from "../lib/use-locale";
 import { isRestoreEnabled, setRestoreEnabled } from "../lib/tab-storage";
+import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
 import { ThemeModeSelector } from "./settings/ThemeModeSelector";
 import { LanguageSelector } from "./settings/LanguageSelector";
 import { ApprovalConfig } from "./settings/ApprovalConfig";
@@ -33,6 +34,7 @@ export function Settings({ onBack }: SettingsProps) {
   useLocale();
   const [autostart, setAutostart] = useState(false);
   const [restoreTabs, setRestoreTabs] = useState(isRestoreEnabled());
+  const [approvalSound, setApprovalSound] = useState(isSoundEnabled());
   const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode());
   const [locale, setLocaleState] = useState(getLocale());
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,12 @@ export function Settings({ onBack }: SettingsProps) {
     const next = !restoreTabs;
     setRestoreEnabled(next);
     setRestoreTabs(next);
+  }
+
+  function handleToggleSound() {
+    const next = !approvalSound;
+    setSoundEnabled(next);
+    setApprovalSound(next);
   }
 
   async function handleGenerateConfig(type: "claude" | "hermes") {
@@ -127,6 +135,22 @@ export function Settings({ onBack }: SettingsProps) {
           aria-label={t("settings.sessionRestore")}
           aria-checked={restoreTabs}
           onClick={handleToggleRestore}
+        >
+          <span class={styles.toggleKnob} />
+        </button>
+      </div>
+
+      <div class={styles.section}>
+        <div class={styles.sectionLabel}>
+          <p class={styles.sectionTitle}>{t("settings.approvalSound")}</p>
+          <p class={styles.sectionDesc}>{t("settings.approvalSoundDesc")}</p>
+        </div>
+        <button
+          class={styles.toggle}
+          role="switch"
+          aria-label={t("settings.approvalSound")}
+          aria-checked={approvalSound}
+          onClick={handleToggleSound}
         >
           <span class={styles.toggleKnob} />
         </button>
