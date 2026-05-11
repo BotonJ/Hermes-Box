@@ -28,7 +28,13 @@
     "approvalSound": "审批音效",
     "approvalSoundDesc": "收到审批请求时播放提示音",
     "previewSound": "试听",
-    "chooseFile": "选择文件"
+    "chooseFile": "选择文件",
+    "customCli": "自定义 CLI 工具",
+    "customCliDesc": "添加自定义 CLI 工具到选择器",
+    "addCli": "添加",
+    "removeCli": "移除",
+    "cliLabelPlaceholder": "名称（如 Codex）",
+    "cliCommandPlaceholder": "命令（如 codex）"
   },
   "theme": {
     "dark": "深色",
