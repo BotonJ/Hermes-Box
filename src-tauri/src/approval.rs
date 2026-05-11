@@ -286,11 +286,12 @@ pub fn deny_command(id: String) -> Result<(), String> {
 }
 
 /// Pure config generation logic, testable without AppHandle.
+/// Returns a human-readable status message on success.
 fn generate_approval_config_inner(
     config_type: String,
     bridge_dir: String,
     extra_candidates: Vec<PathBuf>,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let bridge_path = Path::new(&bridge_dir);
     if !bridge_path.is_absolute() {
         return Err("bridge directory must be an absolute path".to_string());
@@ -299,59 +300,15 @@ fn generate_approval_config_inner(
         return Err("bridge directory path contains invalid characters".to_string());
     }
 
-    let home = std::env::var("HOME").map_err(|e| format!("HOME not set: {e}"))?;
-    let home_path = PathBuf::from(&home);
-
-    let (target_path, content) = match config_type.as_str() {
-        "claude" => {
-            let path = home_path.join(".claude/settings.json");
-            let template = serde_json::json!({
-                "hooks": {
-                    "PreToolUse": [{
-                        "matcher": "Bash",
-                        "hooks": [{
-                            "type": "command",
-                            "command": format!("{}/claude-code-approval-bridge.sh", bridge_dir.trim_end_matches('/'))
-                        }]
-                    }]
-                }
-            });
-            (
-                path,
-                serde_json::to_string_pretty(&template)
-                    .map_err(|e| format!("failed to serialize config: {e}"))?,
-            )
-        }
-        "hermes" => {
-            let path = home_path.join(".hermes/config.yaml");
-            let cmd = format!(
-                "{}/hermes-approval-bridge.sh",
-                bridge_dir.trim_end_matches('/')
-            );
-            let template = serde_json::json!({
-                "hooks": {
-                    "pre_tool_call": [{
-                        "matcher": "terminal",
-                        "command": cmd,
-                    }]
-                }
-            });
-            let content = serde_yaml::to_string(&template)
-                .map_err(|e| format!("failed to serialize YAML config: {e}"))?;
-            (path, content)
-        }
+    // Verify the bridge script exists (or auto-deploy) before touching config
+    let script_name = match config_type.as_str() {
+        "claude" => "claude-code-approval-bridge.sh",
+        "hermes" => "hermes-approval-bridge.sh",
         _ => {
             return Err(format!(
                 "unknown config type: {config_type}. Use 'claude' or 'hermes'"
             ))
         }
-    };
-
-    // Verify the bridge script exists before generating config
-    let script_name = match config_type.as_str() {
-        "claude" => "claude-code-approval-bridge.sh",
-        "hermes" => "hermes-approval-bridge.sh",
-        _ => unreachable!(),
     };
     let script_path = PathBuf::from(bridge_dir.trim_end_matches('/')).join(script_name);
     if !script_path.exists() {
@@ -363,30 +320,273 @@ fn generate_approval_config_inner(
         }
     }
 
-    if target_path.exists() {
-        return Err(format!(
-            "{} already exists. Please merge the approval config manually.",
-            target_path.display()
-        ));
-    }
+    let home = std::env::var("HOME").map_err(|e| format!("HOME not set: {e}"))?;
+    let home_path = PathBuf::from(&home);
 
-    if let Some(parent) = target_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("failed to create parent dir: {e}"))?;
+    match config_type.as_str() {
+        "claude" => merge_claude_config(&home_path, &bridge_dir),
+        "hermes" => merge_hermes_config(&home_path, &bridge_dir),
+        _ => unreachable!(),
     }
+}
 
-    let tmp_path = target_path.with_extension(
-        target_path
-            .extension()
+/// Build the Claude Code hook entry for approval bridge.
+fn claude_hook_entry(bridge_dir: &str) -> serde_json::Value {
+    let cmd = format!("{}/claude-code-approval-bridge.sh", bridge_dir.trim_end_matches('/'));
+    serde_json::json!({
+        "type": "command",
+        "command": cmd
+    })
+}
+
+/// Build the Hermes hook entry for approval bridge.
+fn hermes_hook_entry(bridge_dir: &str) -> serde_yaml::Value {
+    let cmd = format!("{}/hermes-approval-bridge.sh", bridge_dir.trim_end_matches('/'));
+    let mut mapping = serde_yaml::Mapping::new();
+    mapping.insert(
+        serde_yaml::Value::String("event".to_string()),
+        serde_yaml::Value::String("pre_tool_call".to_string()),
+    );
+    mapping.insert(
+        serde_yaml::Value::String("matcher".to_string()),
+        serde_yaml::Value::String("terminal".to_string()),
+    );
+    mapping.insert(
+        serde_yaml::Value::String("command".to_string()),
+        serde_yaml::Value::String(cmd),
+    );
+    mapping.insert(
+        serde_yaml::Value::String("timeout".to_string()),
+        serde_yaml::Value::Number(120.into()),
+    );
+    serde_yaml::Value::Mapping(mapping)
+}
+
+/// Detect if a Claude settings JSON contains a Box-managed approval hook.
+fn has_claude_approval_hook(settings: &serde_json::Value) -> bool {
+    settings
+        .get("hooks")
+        .and_then(|h| h.get("PreToolUse"))
+        .and_then(|entries| entries.as_array())
+        .is_some_and(|entries| {
+            entries.iter().any(|entry| {
+                entry
+                    .get("hooks")
+                    .and_then(|hooks| hooks.as_array())
+                    .is_some_and(|hooks| {
+                        hooks.iter().any(|h| {
+                            h.get("command")
+                                .and_then(|c| c.as_str())
+                                .is_some_and(|c| c.contains("claude-code-approval-bridge.sh"))
+                        })
+                    })
+            })
+        })
+}
+
+/// Detect if a Hermes config YAML contains a Box-managed approval hook.
+fn has_hermes_approval_hook(config: &serde_yaml::Value) -> bool {
+    config
+        .get("hooks")
+        .and_then(|hooks| hooks.as_sequence())
+        .is_some_and(|hooks| {
+            hooks.iter().any(|h| {
+                h.get("command")
+                    .and_then(|c| c.as_str())
+                    .is_some_and(|c| c.contains("hermes-approval-bridge.sh"))
+            })
+        })
+}
+
+/// Backup a file with date-stamped suffix. Returns the backup path.
+fn backup_file(path: &Path) -> Result<PathBuf, String> {
+    let timestamp = chrono_less::now_timestamp();
+    let backup = path.with_extension(format!("backup.{timestamp}"));
+    std::fs::copy(path, &backup)
+        .map_err(|e| format!("failed to backup {}: {e}", path.display()))?;
+    Ok(backup)
+}
+
+/// Timestamp without external crates — YYYYMMDD-HHMMSS.
+fn now_timestamp() -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    // Simple approximation: use secs for a basic timestamp string
+    let secs = now.as_secs();
+    let days = secs / 86400;
+    let time_of_day = secs % 86400;
+    let hours = time_of_day / 3600;
+    let minutes = (time_of_day % 3600) / 60;
+    let seconds = time_of_day % 60;
+    // Unix epoch was 1970-01-01. Approximate year.
+    let years_since_1970 = days / 365;
+    let remaining_days = days % 365;
+    let month = (remaining_days / 30).min(11) + 1;
+    let day = (remaining_days % 30).min(27) + 1;
+    format!(
+        "{:04}{:02}{:02}-{:02}{:02}{:02}",
+        1970 + years_since_1970,
+        month,
+        day,
+        hours,
+        minutes,
+        seconds
+    )
+}
+
+mod chrono_less {
+    pub fn now_timestamp() -> String {
+        super::now_timestamp()
+    }
+}
+
+/// Atomic write: write to temp file then rename.
+fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("failed to create parent dir: {e}"))?;
+    }
+    let tmp_path = path.with_extension(
+        path.extension()
             .and_then(|e| e.to_str())
             .map(|e| format!("{e}.hermesbox.tmp"))
             .unwrap_or_else(|| "hermesbox.tmp".to_string()),
     );
-
-    std::fs::write(&tmp_path, &content).map_err(|e| format!("failed to write config: {e}"))?;
-    std::fs::rename(&tmp_path, &target_path)
-        .map_err(|e| format!("failed to finalize config: {e}"))?;
-
+    std::fs::write(&tmp_path, content).map_err(|e| format!("failed to write config: {e}"))?;
+    std::fs::rename(&tmp_path, path).map_err(|e| format!("failed to finalize config: {e}"))?;
     Ok(())
+}
+
+fn merge_claude_config(home_path: &Path, bridge_dir: &str) -> Result<String, String> {
+    let target = home_path.join(".claude/settings.json");
+
+    if !target.exists() {
+        let mut settings = serde_json::json!({});
+        inject_claude_hook(&mut settings, bridge_dir);
+        let content = serde_json::to_string_pretty(&settings)
+            .map_err(|e| format!("failed to serialize config: {e}"))?;
+        atomic_write(&target, &content)?;
+        return Ok("Approval hooks configured for Claude Code".to_string());
+    }
+
+    let raw = std::fs::read_to_string(&target)
+        .map_err(|e| format!("failed to read {}: {e}", target.display()))?;
+    let mut settings: serde_json::Value = serde_json::from_str(&raw)
+        .map_err(|e| format!("failed to parse {}: {e}", target.display()))?;
+
+    if has_claude_approval_hook(&settings) {
+        // Update existing Box hook in place
+        inject_claude_hook(&mut settings, bridge_dir);
+        let content = serde_json::to_string_pretty(&settings)
+            .map_err(|e| format!("failed to serialize config: {e}"))?;
+        atomic_write(&target, &content)?;
+        return Ok("Approval hooks updated for Claude Code".to_string());
+    }
+
+    // Existing config without Box hooks: backup then merge
+    backup_file(&target)?;
+    inject_claude_hook(&mut settings, bridge_dir);
+    let content = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("failed to serialize config: {e}"))?;
+    atomic_write(&target, &content)?;
+    Ok("Backup created, approval hooks merged for Claude Code".to_string())
+}
+
+/// Inject or update the approval hook in a Claude settings JSON value.
+fn inject_claude_hook(settings: &mut serde_json::Value, bridge_dir: &str) {
+    let hook_entry = claude_hook_entry(bridge_dir);
+    let new_matcher = serde_json::json!({
+        "matcher": "Bash",
+        "hooks": [hook_entry]
+    });
+
+    let hooks_obj = settings
+        .as_object_mut()
+        .expect("settings must be an object")
+        .entry("hooks")
+        .or_insert_with(|| serde_json::json!({}));
+
+    let pre_tool = hooks_obj
+        .as_object_mut()
+        .expect("hooks must be an object")
+        .entry("PreToolUse")
+        .or_insert_with(|| serde_json::json!([]));
+
+    let entries = pre_tool
+        .as_array_mut()
+        .expect("PreToolUse must be an array");
+
+    // Remove existing Box-managed entry
+    entries.retain(|entry| {
+        entry
+            .get("hooks")
+            .and_then(|h| h.as_array())
+            .is_none_or(|hooks| {
+                !hooks
+                    .iter()
+                    .any(|h| h.get("command").is_some_and(|c| c.as_str().is_some_and(|s| s.contains("claude-code-approval-bridge.sh"))))
+            })
+    });
+
+    entries.push(new_matcher);
+}
+
+fn merge_hermes_config(home_path: &Path, bridge_dir: &str) -> Result<String, String> {
+    let target = home_path.join(".hermes/config.yaml");
+
+    if !target.exists() {
+        let mut config = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
+        inject_hermes_hook(&mut config, bridge_dir);
+        let content = serde_yaml::to_string(&config)
+            .map_err(|e| format!("failed to serialize config: {e}"))?;
+        atomic_write(&target, &content)?;
+        return Ok("Approval hooks configured for Hermes".to_string());
+    }
+
+    let raw = std::fs::read_to_string(&target)
+        .map_err(|e| format!("failed to read {}: {e}", target.display()))?;
+    let mut config: serde_yaml::Value = serde_yaml::from_str(&raw)
+        .map_err(|e| format!("failed to parse {}: {e}", target.display()))?;
+
+    if has_hermes_approval_hook(&config) {
+        inject_hermes_hook(&mut config, bridge_dir);
+        let content = serde_yaml::to_string(&config)
+            .map_err(|e| format!("failed to serialize config: {e}"))?;
+        atomic_write(&target, &content)?;
+        return Ok("Approval hooks updated for Hermes".to_string());
+    }
+
+    backup_file(&target)?;
+    inject_hermes_hook(&mut config, bridge_dir);
+    let content = serde_yaml::to_string(&config)
+        .map_err(|e| format!("failed to serialize config: {e}"))?;
+    atomic_write(&target, &content)?;
+    Ok("Backup created, approval hooks merged for Hermes".to_string())
+}
+
+/// Inject or update the approval hook in a Hermes config YAML value.
+fn inject_hermes_hook(config: &mut serde_yaml::Value, bridge_dir: &str) {
+    let hook_entry = hermes_hook_entry(bridge_dir);
+
+    let hooks_yaml = config
+        .as_mapping_mut()
+        .expect("config must be a mapping")
+        .entry(serde_yaml::Value::String("hooks".to_string()))
+        .or_insert_with(|| serde_yaml::Value::Sequence(vec![]));
+
+    let entries = hooks_yaml
+        .as_sequence_mut()
+        .expect("hooks must be a sequence");
+
+    // Remove existing Box-managed entry
+    entries.retain(|h| {
+        h.get("command")
+            .and_then(|c| c.as_str())
+            .is_none_or(|c| !c.contains("hermes-approval-bridge.sh"))
+    });
+
+    entries.push(hook_entry);
 }
 
 #[tauri::command]
@@ -394,7 +594,7 @@ pub fn generate_approval_config(
     app: AppHandle,
     config_type: String,
     bridge_dir: String,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let extra = resource_dir_candidates(&app);
     generate_approval_config_inner(config_type, bridge_dir, extra)
 }
@@ -617,24 +817,48 @@ mod tests {
             assert!(content.contains("pre_tool_call"));
             assert!(content.contains("terminal"));
             assert!(content.contains("hermes-approval-bridge.sh"));
+            // Verify YAML structure — hooks is a list of hook objects
+            let parsed: serde_yaml::Value =
+                serde_yaml::from_str(&content).expect("YAML must be valid");
+            let hooks = parsed["hooks"].as_sequence().expect("hooks must be a list");
+            assert_eq!(hooks.len(), 1);
+            assert_eq!(hooks[0]["matcher"].as_str(), Some("terminal"));
         });
     }
 
     #[test]
-    fn generate_config_refuses_overwrite() {
-        with_temp_home("overwrite", |home| {
+    fn generate_config_merges_into_existing_claude_settings() {
+        with_temp_home("merge-claude", |home| {
             let bridge = setup_bridge_scripts(home);
             let claude_dir = home.join(".claude");
             fs::create_dir_all(&claude_dir).unwrap();
-            fs::write(claude_dir.join("settings.json"), "existing").unwrap();
+            // Existing settings with user data
+            fs::write(
+                claude_dir.join("settings.json"),
+                r#"{"permissions":{"allow":["Bash(ls)"]}}"#,
+            )
+            .unwrap();
 
             let result = generate_approval_config_inner(
                 "claude".to_string(),
                 bridge.to_string_lossy().to_string(),
                 vec![],
             );
-            assert!(result.is_err());
-            assert!(result.unwrap_err().contains("already exists"));
+            assert!(result.is_ok(), "expected Ok, got {result:?}");
+
+            // User data preserved + hooks injected
+            let content = fs::read_to_string(claude_dir.join("settings.json")).unwrap();
+            assert!(content.contains("permissions"), "user data should be preserved");
+            assert!(content.contains("PreToolUse"), "hooks should be injected");
+            assert!(content.contains("claude-code-approval-bridge.sh"));
+            // Backup should exist
+            assert!(
+                claude_dir
+                    .read_dir()
+                    .unwrap()
+                    .any(|e| e.unwrap().file_name().to_string_lossy().contains("backup")),
+                "backup file should exist"
+            );
         });
     }
 
@@ -746,9 +970,8 @@ mod tests {
             let content = fs::read_to_string(home.join(".hermes/config.yaml")).unwrap();
             let parsed: serde_yaml::Value =
                 serde_yaml::from_str(&content).expect("YAML must be valid");
-            let cmd = parsed["hooks"]["pre_tool_call"][0]["command"]
-                .as_str()
-                .unwrap();
+            let hooks = parsed["hooks"].as_sequence().expect("hooks must be a list");
+            let cmd = hooks[0]["command"].as_str().unwrap();
             assert!(
                 cmd.contains("my:bridge"),
                 "path should round-trip through YAML: {cmd}"
@@ -778,9 +1001,8 @@ mod tests {
             let content = fs::read_to_string(home.join(".hermes/config.yaml")).unwrap();
             let parsed: serde_yaml::Value =
                 serde_yaml::from_str(&content).expect("YAML must be valid");
-            let cmd = parsed["hooks"]["pre_tool_call"][0]["command"]
-                .as_str()
-                .unwrap();
+            let hooks = parsed["hooks"].as_sequence().expect("hooks must be a list");
+            let cmd = hooks[0]["command"].as_str().unwrap();
             assert!(
                 cmd.contains("my#bridge"),
                 "path should round-trip through YAML: {cmd}"
@@ -810,9 +1032,8 @@ mod tests {
             let content = fs::read_to_string(home.join(".hermes/config.yaml")).unwrap();
             let parsed: serde_yaml::Value =
                 serde_yaml::from_str(&content).expect("YAML must be valid");
-            let cmd = parsed["hooks"]["pre_tool_call"][0]["command"]
-                .as_str()
-                .unwrap();
+            let hooks = parsed["hooks"].as_sequence().expect("hooks must be a list");
+            let cmd = hooks[0]["command"].as_str().unwrap();
             assert!(
                 cmd.contains("it's a bridge"),
                 "path should round-trip through YAML: {cmd}"
@@ -842,9 +1063,8 @@ mod tests {
             let content = fs::read_to_string(home.join(".hermes/config.yaml")).unwrap();
             let parsed: serde_yaml::Value =
                 serde_yaml::from_str(&content).expect("YAML must be valid");
-            let cmd = parsed["hooks"]["pre_tool_call"][0]["command"]
-                .as_str()
-                .unwrap();
+            let hooks = parsed["hooks"].as_sequence().expect("hooks must be a list");
+            let cmd = hooks[0]["command"].as_str().unwrap();
             assert!(
                 cmd.contains("my$bridge"),
                 "path should round-trip through YAML: {cmd}"
@@ -864,14 +1084,12 @@ mod tests {
             assert!(result.is_ok());
 
             let content = fs::read_to_string(home.join(".hermes/config.yaml")).unwrap();
-            // Verify the YAML can be parsed back
             let parsed: serde_yaml::Value =
                 serde_yaml::from_str(&content).expect("generated YAML should be valid");
-            let hooks = parsed.get("hooks").expect("should have hooks key");
-            let pre_tool_call = hooks
-                .get("pre_tool_call")
-                .expect("should have pre_tool_call");
-            assert!(pre_tool_call.is_sequence());
+            let hooks = parsed["hooks"].as_sequence().expect("hooks should be a list");
+            assert_eq!(hooks.len(), 1);
+            assert_eq!(hooks[0]["event"].as_str(), Some("pre_tool_call"));
+            assert_eq!(hooks[0]["matcher"].as_str(), Some("terminal"));
         });
     }
 
@@ -978,6 +1196,101 @@ mod tests {
                 home.join(".claude/settings.json").exists(),
                 "config should be generated"
             );
+        });
+    }
+
+    #[test]
+    fn claude_config_updates_existing_box_hook() {
+        with_temp_home("claude-update", |home| {
+            let bridge = setup_bridge_scripts(home);
+            // First generation
+            let r1 = generate_approval_config_inner(
+                "claude".to_string(),
+                bridge.to_string_lossy().to_string(),
+                vec![],
+            );
+            assert!(r1.is_ok());
+
+            // Second generation — should update, not error
+            let r2 = generate_approval_config_inner(
+                "claude".to_string(),
+                bridge.to_string_lossy().to_string(),
+                vec![],
+            );
+            assert!(r2.is_ok(), "second run should succeed: {r2:?}");
+            assert!(
+                r2.unwrap().contains("updated"),
+                "message should mention update"
+            );
+
+            // Verify no backup created (since it's an update, not first merge)
+            let claude_dir = home.join(".claude");
+            let has_backup = claude_dir
+                .read_dir()
+                .unwrap()
+                .any(|e| e.unwrap().file_name().to_string_lossy().contains("backup"));
+            assert!(!has_backup, "no backup needed for update");
+        });
+    }
+
+    #[test]
+    fn hermes_config_merges_into_existing_yaml() {
+        with_temp_home("hermes-merge", |home| {
+            let bridge = setup_bridge_scripts(home);
+            let hermes_dir = home.join(".hermes");
+            fs::create_dir_all(&hermes_dir).unwrap();
+            // Existing config with user data
+            fs::write(
+                hermes_dir.join("config.yaml"),
+                "model:\n  default: test-model\nterminal:\n  backend: local\n",
+            )
+            .unwrap();
+
+            let result = generate_approval_config_inner(
+                "hermes".to_string(),
+                bridge.to_string_lossy().to_string(),
+                vec![],
+            );
+            assert!(result.is_ok(), "merge should succeed: {result:?}");
+
+            let content = fs::read_to_string(hermes_dir.join("config.yaml")).unwrap();
+            // User data preserved
+            assert!(content.contains("test-model"), "user data should be preserved");
+            // Hook injected
+            assert!(
+                content.contains("hermes-approval-bridge.sh"),
+                "hook should be injected"
+            );
+        });
+    }
+
+    #[test]
+    fn hermes_config_updates_existing_box_hook() {
+        with_temp_home("hermes-update", |home| {
+            let bridge = setup_bridge_scripts(home);
+            // First generation
+            let r1 = generate_approval_config_inner(
+                "hermes".to_string(),
+                bridge.to_string_lossy().to_string(),
+                vec![],
+            );
+            assert!(r1.is_ok());
+
+            // Second generation — should update
+            let r2 = generate_approval_config_inner(
+                "hermes".to_string(),
+                bridge.to_string_lossy().to_string(),
+                vec![],
+            );
+            assert!(r2.is_ok(), "second run should succeed: {r2:?}");
+            assert!(r2.unwrap().contains("updated"));
+
+            // Verify only one hook entry (not duplicated)
+            let content = fs::read_to_string(home.join(".hermes/config.yaml")).unwrap();
+            let parsed: serde_yaml::Value =
+                serde_yaml::from_str(&content).expect("YAML must be valid");
+            let hooks = parsed["hooks"].as_sequence().expect("hooks must be a list");
+            assert_eq!(hooks.len(), 1, "hook should not be duplicated");
         });
     }
 }
