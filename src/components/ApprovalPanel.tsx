@@ -51,9 +51,11 @@ export function ApprovalPanel({
     });
   }, [requests, timeoutMs]);
 
+  const hasRequests = requests.length > 0;
+
   // Tick countdown every second while requests are pending
   useEffect(() => {
-    if (requests.length === 0) return;
+    if (!hasRequests) return;
 
     const tick = setInterval(() => {
       setRemaining((prev) => {
@@ -69,7 +71,7 @@ export function ApprovalPanel({
     }, 1000);
 
     return () => clearInterval(tick);
-  }, [requests.length > 0]);
+  }, [hasRequests]);
 
   // Auto-deny via setTimeout per request
   useEffect(() => {
@@ -104,8 +106,9 @@ export function ApprovalPanel({
 
   // Cleanup all timers on unmount
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      for (const timer of timersRef.current.values()) {
+      for (const timer of timers.values()) {
         clearTimeout(timer);
       }
     };
@@ -115,13 +118,14 @@ export function ApprovalPanel({
     return null;
   }
 
-  function handleAction(id: string, action: "approve" | "deny") {
+  function handleDeny(id: string) {
     setProcessing(id);
-    if (action === "approve") {
-      onApprove(id);
-    } else {
-      onDeny(id);
-    }
+    onDeny(id);
+  }
+
+  function handleApprove(id: string) {
+    setProcessing(id);
+    onApprove(id);
   }
 
   return (
@@ -151,14 +155,14 @@ export function ApprovalPanel({
             <button
               class={styles.denyButton}
               disabled={processing === req.id}
-              onClick={() => handleAction(req.id, "deny")}
+              onClick={() => handleDeny(req.id)}
             >
               Deny
             </button>
             <button
               class={styles.approveButton}
               disabled={processing === req.id}
-              onClick={() => handleAction(req.id, "approve")}
+              onClick={() => handleApprove(req.id)}
             >
               Approve
             </button>

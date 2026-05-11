@@ -15,13 +15,20 @@ interface Props {
 }
 
 export function ApprovalModal({ request, onResolved }: Props) {
-  async function handleDecision(action: "approve" | "deny") {
+  async function handleDeny() {
     try {
-      await invoke(action === "approve" ? "approve_command" : "deny_command", {
-        id: request.id,
-      });
+      await invoke("deny_command", { id: request.id });
     } catch (e) {
-      console.error(`[approval] ${action} failed:`, e);
+      console.error("[approval] deny failed:", e);
+    }
+    onResolved();
+  }
+
+  async function handleApprove() {
+    try {
+      await invoke("approve_command", { id: request.id });
+    } catch (e) {
+      console.error("[approval] approve failed:", e);
     }
     onResolved();
   }
@@ -41,13 +48,13 @@ export function ApprovalModal({ request, onResolved }: Props) {
         <div class={styles.actions}>
           <button
             class={`${styles.btn} ${styles.deny}`}
-            onClick={() => handleDecision("deny")}
+            onClick={handleDeny}
           >
             Deny
           </button>
           <button
             class={`${styles.btn} ${styles.approve}`}
-            onClick={() => handleDecision("approve")}
+            onClick={handleApprove}
           >
             Approve
           </button>

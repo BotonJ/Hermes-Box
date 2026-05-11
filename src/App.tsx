@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { platform } from "@tauri-apps/plugin-os";
 import { homeDir } from "@tauri-apps/api/path";
 import { listen } from "@tauri-apps/api/event";
@@ -289,6 +289,16 @@ export function App() {
 
   const showTabs = tabs.length > 0;
 
+  const handleOpenSettings = useCallback(() => setView("settings"), []);
+  const handleCloseSettings = useCallback(() => {
+    if (tabs.length > 0) {
+      setActiveTabId(tabs[tabs.length - 1].id);
+      setView("terminal");
+    } else {
+      setView("selector");
+    }
+  }, [tabs]);
+
   return (
     <div class={styles.app}>
       <ApprovalPanel
@@ -305,16 +315,8 @@ export function App() {
           onSwitch={handleTabSwitch}
           onClose={handleTabClose}
           onAdd={handleAddTab}
-          onSettings={() => setView("settings")}
-          onSettingsClose={() => {
-            if (tabs.length > 0) {
-              setActiveTabId(tabs[tabs.length - 1].id);
-              setView("terminal");
-            } else {
-              setView("selector");
-            }
-          }}
-        />
+          onSettings={handleOpenSettings}
+          onSettingsClose={handleCloseSettings}        />
       )}
       {view === "welcome" && (
         <div class={styles.contentArea}>
@@ -345,8 +347,7 @@ export function App() {
               env={tab.env}
               command={tab.command}
               isActive={tab.id === activeTabId}
-              onExit={() => handleTabExit(tab.id)}
-            />
+              onExit={() => handleTabExit(tab.id)}            />
           ))}
         </div>
       )}

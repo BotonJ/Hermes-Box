@@ -30,25 +30,29 @@ export function TabBar({ tabs, activeId, settingsActive, onSwitch, onClose, onAd
   return (
     <div class={styles.wrapper}>
       <div class={styles.tabRow}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            class={`${styles.tab} ${tab.id === activeId ? styles.active : ""}`}
-            onClick={() => onSwitch(tab.id)}
-          >
-            <span class={styles.tabIcon}>{CLI_ICONS[tab.cliId] ?? ">"}</span>
-            <span class={styles.tabTitle}>{tab.title}</span>
-            <span
-              class={styles.closeBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose(tab.id);
-              }}
+        {tabs.map((tab) => {
+          const handleSwitch = () => onSwitch(tab.id);
+          const handleClose = (e: MouseEvent) => {
+            e.stopPropagation();
+            onClose(tab.id);
+          };
+          return (
+            <button
+              key={tab.id}
+              class={`${styles.tab} ${tab.id === activeId ? styles.active : ""}`}
+              onClick={handleSwitch}
             >
-              &times;
-            </span>
-          </button>
-        ))}
+              <span class={styles.tabIcon}>{CLI_ICONS[tab.cliId] ?? ">"}</span>
+              <span class={styles.tabTitle}>{tab.title}</span>
+              <span
+                class={styles.closeBtn}
+                onClick={handleClose}
+              >
+                &times;
+              </span>
+            </button>
+          );
+        })}
         <button class={styles.addTab} onClick={onAdd} title="Open new tab">
           +
         </button>

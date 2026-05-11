@@ -5,7 +5,14 @@ import "@xterm/xterm/css/xterm.css";
 import { spawn } from "../lib/pty";
 
 // zsh PROMPT_SP: \e[1m\e[7m%\e[27m\e[1m\e[0m + spaces + \r \r
+// eslint-disable-next-line no-control-regex -- ANSI escape sequences are required for terminal prompt detection
 const PROMPT_SP_RE = /\x1b\[1m\x1b\[7m%\x1b\[27m\x1b\[1m\x1b\[0m[^\x0d]*\x0d \x0d/;
+
+const hiddenTerminalStyle: Record<string, string> = {
+  visibility: "hidden",
+  pointerEvents: "none",
+};
+
 import { useTerminalFit } from "../lib/use-terminal-fit";
 import { getTheme } from "../lib/theme";
 import { getXtermTheme } from "../lib/xterm-themes";
@@ -276,6 +283,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     } else {
       renderPausedRef.current = true;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tabId is stable per component instance (key={tab.id})
   }, [isActive]);
 
   // Respond to theme changes
@@ -291,10 +299,8 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       }
     });
 
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
+    const observerOptions: MutationObserverInit = { attributes: true, attributeFilter: ["data-theme"] };
+    observer.observe(document.documentElement, observerOptions);
 
     return () => observer.disconnect();
   }, []);
@@ -303,7 +309,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     <div
       ref={containerRef}
       class={styles.terminal}
-      style={isActive ? undefined : { visibility: "hidden", pointerEvents: "none" }}
+      style={isActive ? undefined : hiddenTerminalStyle}
     />
   );
 }

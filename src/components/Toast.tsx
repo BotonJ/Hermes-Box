@@ -16,18 +16,21 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
 
   return (
     <div class={styles.container} role="status" aria-live="polite" data-testid="toast-container">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          class={`${styles.toast} ${typeStyles[toast.type]}`}
-          role="alert"
-          aria-label={`${toast.type}: ${toast.message}`}
-          data-testid={`toast-${toast.type}`}
-          onClick={() => onDismiss(toast.id)}
-        >
-          {toast.message}
-        </div>
-      ))}
+      {toasts.map((toast) => {
+        const handleDismiss = () => onDismiss(toast.id);
+        return (
+          <div
+            key={toast.id}
+            class={`${styles.toast} ${typeStyles[toast.type]}`}
+            role="alert"
+            aria-label={`${toast.type}: ${toast.message}`}
+            data-testid={`toast-${toast.type}`}
+            onClick={handleDismiss}
+          >
+            {toast.message}
+          </div>
+        );
+      })}
     </div>
   );
 }
