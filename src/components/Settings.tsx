@@ -79,6 +79,16 @@ export function Settings({ onBack }: SettingsProps) {
     }
   }
 
+  function handleThemeChange(v: ThemeMode) {
+    setThemeMode(v);
+    setThemeModeState(v);
+  }
+
+  function handleLocaleChange(v: "en" | "zh") {
+    setLocale(v);
+    setLocaleState(v);
+  }
+
   return (
     <div class={styles.container}>
       <div class={styles.header}>
@@ -131,7 +141,7 @@ export function Settings({ onBack }: SettingsProps) {
 
       <ThemeModeSelector
         mode={themeMode}
-        onChange={(v) => { setThemeMode(v); setThemeModeState(v); }}
+        onChange={handleThemeChange}
       />
 
       <div class={styles.section}>
@@ -143,7 +153,7 @@ export function Settings({ onBack }: SettingsProps) {
 
       <LanguageSelector
         locale={locale}
-        onChange={(v) => { setLocale(v); setLocaleState(v); }}
+        onChange={handleLocaleChange}
       />
 
       <div class={styles.section}>

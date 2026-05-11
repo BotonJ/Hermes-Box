@@ -84,8 +84,8 @@ export function DebugOverlay() {
     <div style={overlayStyle}>
       <div style={headerStyle}>
         DEBUG — {m.tabCount} tabs — {formatBps(m.totalBytesPerSec)} total — {logRef.current.length} samples
-        <span style={{ opacity: 0.5, marginLeft: 8 }}>Ctrl+Shift+D close &amp; export</span>
-        {copied && <span style={{ color: "#0f0", marginLeft: 8 }}>copied!</span>}
+        <span style={hintStyle}>Ctrl+Shift+D close &amp; export</span>
+        {copied && <span style={copiedStyle}>copied!</span>}
       </div>
       <table style={tableStyle}>
         <thead>
@@ -113,7 +113,7 @@ export function DebugOverlay() {
           ))}
         </tbody>
       </table>
-      <span style={{ display: "none" }}>{tick}</span>
+      <span style={hiddenStyle}>{tick}</span>
     </div>
   );
 }
@@ -170,4 +170,18 @@ const tdStyle: Record<string, string> = {
 
 const activeRowStyle: Record<string, string> = {
   color: "#0f0",
+};
+
+const hintStyle: Record<string, string> = {
+  opacity: "0.5",
+  marginLeft: "8px",
+};
+
+const copiedStyle: Record<string, string> = {
+  color: "#0f0",
+  marginLeft: "8px",
+};
+
+const hiddenStyle: Record<string, string> = {
+  display: "none",
 };

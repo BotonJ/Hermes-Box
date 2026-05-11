@@ -16,6 +16,10 @@ function getMeta(id: string) {
 export function CLISelector({ results, onSelect }: CLISelectorProps) {
   useLocale();
 
+  function handleSelectShell() {
+    onSelect("shell", "/bin/zsh");
+  }
+
   return (
     <div class={styles.selector}>
       <div class={styles.header}>
@@ -53,7 +57,7 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
       <button
         key="shell"
         class={styles.card}
-        onClick={() => onSelect("shell", "/bin/zsh")}
+        onClick={handleSelectShell}
       >
         <div class={styles.icon}>⬛</div>
         <div class={styles.info}>

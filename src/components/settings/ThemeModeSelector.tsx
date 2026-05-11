@@ -10,20 +10,23 @@ interface ThemeModeSelectorProps {
 export function ThemeModeSelector({ mode, onChange }: ThemeModeSelectorProps) {
   return (
     <fieldset class={styles.radioGroup}>
-      {(["dark", "light", "system"] as ThemeMode[]).map((value) => (
-        <label key={value} class={styles.radioLabel}>
-          <input
-            type="radio"
-            name="theme-mode"
-            value={value}
-            class={styles.radioInput}
-            checked={mode === value}
-            onChange={() => onChange(value)}
-          />
-          <span class={styles.radioCustom} />
-          <span>{t(`theme.${value}`)}</span>
-        </label>
-      ))}
+      {(["dark", "light", "system"] as ThemeMode[]).map((value) => {
+        const handleChange = () => onChange(value);
+        return (
+          <label key={value} class={styles.radioLabel}>
+            <input
+              type="radio"
+              name="theme-mode"
+              value={value}
+              class={styles.radioInput}
+              checked={mode === value}
+              onChange={handleChange}
+            />
+            <span class={styles.radioCustom} />
+            <span>{t(`theme.${value}`)}</span>
+          </label>
+        );
+      })}
     </fieldset>
   );
 }

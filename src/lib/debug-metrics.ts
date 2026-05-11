@@ -22,7 +22,7 @@ export interface DebugState {
 type Listener = (state: DebugState) => void;
 
 const listeners = new Set<Listener>();
-let globalState: DebugState = { tabs: [], totalBytesPerSec: 0, tabCount: 0 };
+const globalState: DebugState = { tabs: [], totalBytesPerSec: 0, tabCount: 0 };
 
 function notify() {
   for (const fn of listeners) fn(globalState);

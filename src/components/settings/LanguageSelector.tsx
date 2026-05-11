@@ -6,6 +6,9 @@ interface LanguageSelectorProps {
 }
 
 export function LanguageSelector({ locale, onChange }: LanguageSelectorProps) {
+  function handleEn() { onChange("en"); }
+  function handleZh() { onChange("zh"); }
+
   return (
     <fieldset class={styles.radioGroup}>
       <label class={styles.radioLabel}>
@@ -15,7 +18,7 @@ export function LanguageSelector({ locale, onChange }: LanguageSelectorProps) {
           value="en"
           class={styles.radioInput}
           checked={locale === "en"}
-          onChange={() => onChange("en")}
+          onChange={handleEn}
         />
         <span class={styles.radioCustom} />
         <span>English</span>
@@ -27,7 +30,7 @@ export function LanguageSelector({ locale, onChange }: LanguageSelectorProps) {
           value="zh"
           class={styles.radioInput}
           checked={locale === "zh"}
-          onChange={() => onChange("zh")}
+          onChange={handleZh}
         />
         <span class={styles.radioCustom} />
         <span>中文</span>

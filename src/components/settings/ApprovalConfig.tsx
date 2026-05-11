@@ -9,6 +9,18 @@ interface ApprovalConfigProps {
 }
 
 export function ApprovalConfig({ bridgeDir, onBridgeDirChange, onGenerate, message }: ApprovalConfigProps) {
+  function handleInput(e: Event) {
+    onBridgeDirChange((e.target as HTMLInputElement).value);
+  }
+
+  function handleGenerateClaude() {
+    onGenerate("claude");
+  }
+
+  function handleGenerateHermes() {
+    onGenerate("hermes");
+  }
+
   return (
     <>
       <div class={styles.configRow}>
@@ -17,15 +29,15 @@ export function ApprovalConfig({ bridgeDir, onBridgeDirChange, onGenerate, messa
           type="text"
           value={bridgeDir}
           placeholder={t("settings.bridgeDirectory")}
-          onInput={(e) => onBridgeDirChange(e.currentTarget.value)}
+          onInput={handleInput}
         />
       </div>
 
       <div class={styles.configButtons}>
-        <button class={styles.configButton} onClick={() => onGenerate("claude")}>
+        <button class={styles.configButton} onClick={handleGenerateClaude}>
           {t("settings.generateClaude")}
         </button>
-        <button class={styles.configButton} onClick={() => onGenerate("hermes")}>
+        <button class={styles.configButton} onClick={handleGenerateHermes}>
           {t("settings.generateHermes")}
         </button>
       </div>
