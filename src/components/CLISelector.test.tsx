@@ -14,7 +14,7 @@ const partialResults: DetectResult[] = [
 ];
 
 describe("CLISelector", () => {
-  it("renders a card for each CLI in results", () => {
+  it("renders a card for each found CLI", () => {
     render(<CLISelector results={mockResults} onSelect={vi.fn()} />);
 
     expect(screen.getByText("Hermes")).not.toBeNull();
@@ -36,25 +36,11 @@ describe("CLISelector", () => {
     expect(onSelect).toHaveBeenCalledWith("hermes", "/usr/local/bin/hermes");
   });
 
-  it("marks not-found CLI cards as disabled via button attribute", () => {
+  it("hides not-found CLI cards", () => {
     render(<CLISelector results={partialResults} onSelect={vi.fn()} />);
 
-    const claudeButton = screen.getByText("Claude Code").closest("button");
-    expect(claudeButton?.disabled).toBe(true);
-  });
-
-  it("shows error message for not-found CLI", () => {
-    render(<CLISelector results={partialResults} onSelect={vi.fn()} />);
-
-    expect(screen.getByText(/Claude Code not found/i)).not.toBeNull();
-  });
-
-  it("does not call onSelect when disabled card is clicked", () => {
-    const onSelect = vi.fn();
-    render(<CLISelector results={partialResults} onSelect={onSelect} />);
-
-    fireEvent.click(screen.getByText("Claude Code"));
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.queryByText("Claude Code")).toBeNull();
+    expect(screen.getByText("Hermes")).not.toBeNull();
   });
 
   it("renders Shell card that is always enabled", () => {

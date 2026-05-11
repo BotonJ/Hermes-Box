@@ -38,6 +38,36 @@ export const CLI_REGISTRY: CLIMeta[] = [
       windows: ["claude.exe"],
     },
   },
+  {
+    id: "codex",
+    label: "Codex",
+    description: "OpenAI coding agent",
+    commands: ["codex"],
+    fallbackPaths: {
+      darwin: ["/usr/local/bin/codex", "/opt/homebrew/bin/codex", "$HOME/.local/bin/codex"],
+      windows: ["codex.exe"],
+    },
+  },
+  {
+    id: "opencode",
+    label: "OpenCode",
+    description: "Open-source coding agent",
+    commands: ["opencode"],
+    fallbackPaths: {
+      darwin: ["/usr/local/bin/opencode", "/opt/homebrew/bin/opencode", "$HOME/.local/bin/opencode"],
+      windows: ["opencode.exe"],
+    },
+  },
+  {
+    id: "openclaw",
+    label: "OpenClaw",
+    description: "AI coding assistant",
+    commands: ["openclaw"],
+    fallbackPaths: {
+      darwin: ["/usr/local/bin/openclaw", "/opt/homebrew/bin/openclaw", "$HOME/.local/bin/openclaw"],
+      windows: ["openclaw.exe"],
+    },
+  },
 ];
 
 export async function detectCLI(

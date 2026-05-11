@@ -28,7 +28,13 @@
     "approvalSound": "Approval Sound",
     "approvalSoundDesc": "Play a notification sound when an approval request arrives",
     "previewSound": "Preview",
-    "chooseFile": "Choose File"
+    "chooseFile": "Choose File",
+    "customCli": "Custom CLI Tools",
+    "customCliDesc": "Add custom CLI tools to the selector",
+    "addCli": "Add",
+    "removeCli": "Remove",
+    "cliLabelPlaceholder": "Name (e.g. Codex)",
+    "cliCommandPlaceholder": "Command (e.g. codex)"
   },
   "theme": {
     "dark": "Dark",

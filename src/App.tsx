@@ -10,6 +10,7 @@ import { Settings } from "./components/Settings";
 import { ApprovalPanel } from "./components/ApprovalPanel";
 import { ToastContainer } from "./components/Toast";
 import { detectAllCLIs, CLI_REGISTRY, type DetectResult } from "./lib/cli-detect";
+import { getCustomCLIs, customCLIsToMeta } from "./lib/custom-clis";
 import { captureShellEnv, mergeEnv } from "./lib/env-capture";
 import { execLookup } from "./lib/exec-lookup";
 import { fileExists } from "./lib/file-exists";
@@ -176,10 +177,11 @@ export function App() {
     if (view !== "selector") return;
 
     const os = platform() === "windows" ? "windows" : "darwin";
+    const allRegistry = [...CLI_REGISTRY, ...customCLIsToMeta(getCustomCLIs())];
 
     homeDir()
-      .then((home) => detectAllCLIs(CLI_REGISTRY, os, execLookup, fileExists, home))
-      .catch(() => detectAllCLIs(CLI_REGISTRY, os, execLookup, fileExists, ""))
+      .then((home) => detectAllCLIs(allRegistry, os, execLookup, fileExists, home))
+      .catch(() => detectAllCLIs(allRegistry, os, execLookup, fileExists, ""))
       .then((results) => setCliResults(results));
   }, [view]);
 

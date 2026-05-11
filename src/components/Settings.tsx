@@ -16,6 +16,7 @@ import { useLocale } from "../lib/use-locale";
 import { isRestoreEnabled, setRestoreEnabled } from "../lib/tab-storage";
 import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
 import { SoundSelector } from "./settings/SoundSelector";
+import { CustomCLIManager } from "./settings/CustomCLIManager";
 import { ThemeModeSelector } from "./settings/ThemeModeSelector";
 import { LanguageSelector } from "./settings/LanguageSelector";
 import { ApprovalConfig } from "./settings/ApprovalConfig";
@@ -166,6 +167,15 @@ export function Settings({ onBack }: SettingsProps) {
         locale={locale}
         onChange={handleLocaleChange}
       />
+
+      <div class={styles.section}>
+        <div class={styles.sectionLabel}>
+          <p class={styles.sectionTitle}>{t("settings.customCli")}</p>
+          <p class={styles.sectionDesc}>{t("settings.customCliDesc")}</p>
+        </div>
+      </div>
+
+      <CustomCLIManager />
 
       <div class={styles.section}>
         <div class={styles.sectionLabel}>

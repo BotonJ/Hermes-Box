@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: var(--space-md);
   padding: var(--space-xl) var(--space-lg);
-  max-width: 520px;
+  max-width: 640px;
   margin: 0 auto;
   width: 100%;
 }
@@ -24,31 +24,17 @@
   letter-spacing: var(--tracking-tight);
 }
 
-.settingsBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  position: absolute;
-  right: 0;
-}
-
-.settingsBtn:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
 }
 
 .card {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg);
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -69,16 +55,11 @@
   box-shadow: var(--shadow-sm);
 }
 
-.disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 .icon {
-  font-size: 32px;
+  font-size: 24px;
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,20 +70,20 @@
 .info {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xxs);
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
 
 .label {
-  font-size: var(--text-title);
+  font-size: var(--text-body);
   font-weight: var(--weight-semibold);
   margin: 0;
   letter-spacing: var(--tracking-normal);
 }
 
 .description {
-  font-size: var(--text-caption);
+  font-size: 11px;
   color: var(--text-secondary);
   margin: 0;
   line-height: var(--leading-normal);

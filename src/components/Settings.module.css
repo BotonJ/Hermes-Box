@@ -305,3 +305,89 @@
   background: var(--surface-hover);
   border-color: var(--text-muted);
 }
+
+/* Custom CLI Manager */
+
+.customCliSection {
+  padding: var(--space-xs) 0 var(--space-md);
+}
+
+.customCliList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+}
+
+.customCliItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+}
+
+.customCliLabel {
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.customCliCommand {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customCliRemove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--text-caption);
+  padding: 0 var(--space-xxs);
+  line-height: 1;
+}
+
+.customCliRemove:hover {
+  color: var(--danger);
+}
+
+.customCliForm {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.customCliInput {
+  flex: 1;
+  height: 32px;
+  padding: 0 var(--space-sm);
+  font-size: var(--text-caption);
+  font-family: var(--font-ui);
+  color: var(--text-primary);
+  background: var(--surface-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+
+.customCliInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+.customCliInput::placeholder {
+  color: var(--text-muted);
+}
