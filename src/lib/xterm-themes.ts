@@ -1,4 +1,4 @@
-import type { Theme } from "./theme";
+import type { ThemeChoice } from "./theme";
 
 export interface XtermTheme {
   background: string;
@@ -24,8 +24,8 @@ export interface XtermTheme {
   brightWhite: string;
 }
 
-// Gruvbox Dark (community color scheme)
-const GRUVBOX_DARK: XtermTheme = {
+// Obsidian (Gruvbox Dark)
+const OBSIDIAN: XtermTheme = {
   background: "#282828",
   foreground: "#ebdbb2",
   cursor: "#ebdbb2",
@@ -50,7 +50,7 @@ const GRUVBOX_DARK: XtermTheme = {
 };
 
 // macOS Grass (green-themed light palette)
-const GRASS_LIGHT: XtermTheme = {
+const GRASS: XtermTheme = {
   background: "#487147",
   foreground: "#f4f4f4",
   cursor: "#f4f4f4",
@@ -74,7 +74,143 @@ const GRASS_LIGHT: XtermTheme = {
   brightWhite: "#eeeeec",
 };
 
-export function getXtermTheme(theme: Theme): XtermTheme {
-  if (theme === "light") return GRASS_LIGHT;
-  return GRUVBOX_DARK;
+// Ocean (blue-toned dark)
+const OCEAN: XtermTheme = {
+  background: "#0d1926",
+  foreground: "#e0e8f0",
+  cursor: "#4fc3f7",
+  cursorAccent: "#0d1926",
+  selectionBackground: "#1b3a52",
+  black: "#0d1926",
+  red: "#ef5350",
+  green: "#66bb6a",
+  yellow: "#ffa726",
+  blue: "#42a5f5",
+  magenta: "#ab47bc",
+  cyan: "#26c6da",
+  white: "#b0bec5",
+  brightBlack: "#546e7a",
+  brightRed: "#e57373",
+  brightGreen: "#81c784",
+  brightYellow: "#ffcc80",
+  brightBlue: "#90caf9",
+  brightMagenta: "#ce93d8",
+  brightCyan: "#80deea",
+  brightWhite: "#eceff1",
+};
+
+// Sunset (warm dark)
+const SUNSET: XtermTheme = {
+  background: "#1e120d",
+  foreground: "#f5ece6",
+  cursor: "#ffab40",
+  cursorAccent: "#1e120d",
+  selectionBackground: "#3d261e",
+  black: "#1e120d",
+  red: "#ef5350",
+  green: "#81c784",
+  yellow: "#ffca28",
+  blue: "#64b5f6",
+  magenta: "#ba68c8",
+  cyan: "#4dd0e1",
+  white: "#bcaaa4",
+  brightBlack: "#8d6e63",
+  brightRed: "#e57373",
+  brightGreen: "#a5d6a7",
+  brightYellow: "#ffe082",
+  brightBlue: "#90caf9",
+  brightMagenta: "#ce93d8",
+  brightCyan: "#80deea",
+  brightWhite: "#efebe9",
+};
+
+// Lavender (purple-toned dark)
+const LAVENDER: XtermTheme = {
+  background: "#141020",
+  foreground: "#ece6f5",
+  cursor: "#b388ff",
+  cursorAccent: "#141020",
+  selectionBackground: "#2c244a",
+  black: "#141020",
+  red: "#ef5350",
+  green: "#69f0ae",
+  yellow: "#ffd740",
+  blue: "#7c4dff",
+  magenta: "#ea80fc",
+  cyan: "#64ffda",
+  white: "#b39ddb",
+  brightBlack: "#7e57c2",
+  brightRed: "#e57373",
+  brightGreen: "#b9f6ca",
+  brightYellow: "#ffe57f",
+  brightBlue: "#b388ff",
+  brightMagenta: "#ea80fc",
+  brightCyan: "#a7ffeb",
+  brightWhite: "#f3e5f5",
+};
+
+// Gruvbox Dark
+const GRUVBOX_DARK: XtermTheme = {
+  background: "#282828",
+  foreground: "#ebdbb2",
+  cursor: "#ebdbb2",
+  cursorAccent: "#282828",
+  selectionBackground: "#665c54",
+  black: "#282828",
+  red: "#cc241d",
+  green: "#98971a",
+  yellow: "#d79921",
+  blue: "#458588",
+  magenta: "#b16286",
+  cyan: "#689d6a",
+  white: "#a89984",
+  brightBlack: "#928374",
+  brightRed: "#fb4934",
+  brightGreen: "#b8bb26",
+  brightYellow: "#fabd2f",
+  brightBlue: "#83a598",
+  brightMagenta: "#d3869b",
+  brightCyan: "#8ec07c",
+  brightWhite: "#ebdbb2",
+};
+
+// Atom One Light
+const ATOM_ONE_LIGHT: XtermTheme = {
+  background: "#fafafa",
+  foreground: "#383a42",
+  cursor: "#383a42",
+  cursorAccent: "#fafafa",
+  selectionBackground: "#baddf8",
+  black: "#ffffff",
+  red: "#e06c75",
+  green: "#98c379",
+  yellow: "#d19a66",
+  blue: "#61afef",
+  magenta: "#c678dd",
+  cyan: "#56b6c2",
+  white: "#abb2bf",
+  brightBlack: "#5c6370",
+  brightRed: "#e06c75",
+  brightGreen: "#98c379",
+  brightYellow: "#d19a66",
+  brightBlue: "#61afef",
+  brightMagenta: "#c678dd",
+  brightCyan: "#56b6c2",
+  brightWhite: "#ffffff",
+};
+
+const THEMES: Record<ThemeChoice, XtermTheme> = {
+  dark: OBSIDIAN,
+  grass: GRASS,
+  ocean: OCEAN,
+  sunset: SUNSET,
+  lavender: LAVENDER,
+  "gruvbox-dark": GRUVBOX_DARK,
+  "atom-one-light": ATOM_ONE_LIGHT,
+  system: OBSIDIAN, // resolved at runtime by theme.ts
+};
+
+/** Returns the xterm theme for a given theme choice. */
+export function getXtermTheme(choice: ThemeChoice): XtermTheme {
+  return THEMES[choice] ?? OBSIDIAN;
 }

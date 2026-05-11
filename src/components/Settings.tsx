@@ -7,17 +7,19 @@ import {
 } from "../lib/autostart";
 import { generateApprovalConfig, setupBridgeDir } from "../lib/approval-bridge";
 import {
-  getThemeMode,
-  setThemeMode,
-  type ThemeMode,
+  getTheme,
+  setTheme,
+  getEffectiveTheme,
+  type ThemeChoice,
 } from "../lib/theme";
+import { applyHermesColors } from "../lib/hermes-colors";
 import { getLocale, setLocale, t } from "../lib/i18n";
 import { useLocale } from "../lib/use-locale";
 import { isRestoreEnabled, setRestoreEnabled } from "../lib/tab-storage";
 import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
 import { SoundSelector } from "./settings/SoundSelector";
 import { CustomCLIManager } from "./settings/CustomCLIManager";
-import { ThemeModeSelector } from "./settings/ThemeModeSelector";
+import { ThemeSelector } from "./settings/ThemeSelector";
 import { LanguageSelector } from "./settings/LanguageSelector";
 import { ApprovalConfig } from "./settings/ApprovalConfig";
 import styles from "./Settings.module.css";
@@ -37,7 +39,8 @@ export function Settings({ onBack }: SettingsProps) {
   const [autostart, setAutostart] = useState(false);
   const [restoreTabs, setRestoreTabs] = useState(isRestoreEnabled());
   const [approvalSound, setApprovalSound] = useState(isSoundEnabled());
-  const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode());
+  const [themeChoice, setThemeChoiceState] = useState<ThemeChoice>(getTheme());
+  const [lastEffective, setLastEffective] = useState(getEffectiveTheme());
   const [locale, setLocaleState] = useState(getLocale());
   const [error, setError] = useState<string | null>(null);
   const [bridgeDir, setBridgeDir] = useState("");
@@ -89,9 +92,15 @@ export function Settings({ onBack }: SettingsProps) {
     }
   }
 
-  function handleThemeChange(v: ThemeMode) {
-    setThemeMode(v);
-    setThemeModeState(v);
+  async function handleThemeChange(v: ThemeChoice) {
+    setTheme(v);
+    setThemeChoiceState(v);
+
+    const newEffective = getEffectiveTheme();
+    if (newEffective !== lastEffective) {
+      setLastEffective(newEffective);
+      applyHermesColors(newEffective).catch(() => {});
+    }
   }
 
   function handleLocaleChange(v: "en" | "zh") {
@@ -151,8 +160,8 @@ export function Settings({ onBack }: SettingsProps) {
         </div>
       </div>
 
-      <ThemeModeSelector
-        mode={themeMode}
+      <ThemeSelector
+        choice={themeChoice}
         onChange={handleThemeChange}
       />
 

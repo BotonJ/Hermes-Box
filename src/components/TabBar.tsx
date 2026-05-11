@@ -73,7 +73,6 @@ export function TabBar({ tabs, activeId, settingsActive, onSwitch, onClose, onAd
           </span>
         </button>
       </div>
-      <div class={styles.toolbar} />
     </div>
   );
 }

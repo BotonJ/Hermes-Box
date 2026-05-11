@@ -1,26 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const listeners: Array<(e: MediaQueryListEvent) => void> = [];
 vi.stubGlobal("localStorage", {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
 });
-vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
-  matches: query === "(prefers-color-scheme: dark)",
-  media: query,
-  addEventListener: vi.fn((_type: string, cb: (e: MediaQueryListEvent) => void) => {
-    listeners.push(cb);
-  }),
-  removeEventListener: vi.fn(),
-  dispatchEvent: vi.fn(),
-  onchange: null,
-})));
 
 import {
-  getThemeMode,
-  setThemeMode,
+  getTheme,
+  setTheme,
   getEffectiveTheme,
   initTheme,
 } from "./theme";
@@ -29,107 +18,131 @@ function getDocumentTheme(): string {
   return document.documentElement.dataset.theme ?? "dark";
 }
 
+// Helper: override matchMedia for a single test
+function mockMatchMedia(dark: boolean) {
+  vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+    matches: dark && query === "(prefers-color-scheme: dark)",
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })));
+}
+
 describe("theme", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     document.documentElement.removeAttribute("data-theme");
-    listeners.length = 0;
+    // Default: system prefers dark
+    mockMatchMedia(true);
   });
 
-  afterEach(() => {
-    listeners.length = 0;
-  });
-
-  describe("getThemeMode", () => {
+  describe("getTheme", () => {
     it('returns "dark" by default when localStorage is empty', () => {
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
-      expect(getThemeMode()).toBe("dark");
+      expect(getTheme()).toBe("dark");
     });
 
-    it('returns stored "light"', () => {
+    it("returns each preset", () => {
+      for (const preset of ["dark", "grass", "ocean", "sunset", "lavender", "system"]) {
+        (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(preset);
+        expect(getTheme()).toBe(preset);
+      }
+    });
+
+    it('migrates old "light" to "grass"', () => {
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("light");
-      expect(getThemeMode()).toBe("light");
-    });
-
-    it('returns stored "dark"', () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("dark");
-      expect(getThemeMode()).toBe("dark");
-    });
-
-    it('returns stored "system"', () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("system");
-      expect(getThemeMode()).toBe("system");
+      expect(getTheme()).toBe("grass");
+      expect(localStorage.setItem).toHaveBeenCalledWith("hermesbox:theme", "grass");
     });
 
     it("returns dark when localStorage throws", () => {
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation(() => {
         throw new Error("denied");
       });
-      expect(getThemeMode()).toBe("dark");
+      expect(getTheme()).toBe("dark");
     });
 
     it("returns dark for unknown values", () => {
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("invalid");
-      expect(getThemeMode()).toBe("dark");
+      expect(getTheme()).toBe("dark");
     });
   });
 
-  describe("setThemeMode", () => {
-    it("writes 'dark' to localStorage and sets data-theme", () => {
-      setThemeMode("dark");
-      expect(localStorage.setItem).toHaveBeenCalledWith("hermesbox:theme", "dark");
-      expect(getDocumentTheme()).toBe("dark");
+  describe("setTheme", () => {
+    it("writes choice to localStorage and sets data-theme", () => {
+      setTheme("ocean");
+      expect(localStorage.setItem).toHaveBeenCalledWith("hermesbox:theme", "ocean");
+      expect(getDocumentTheme()).toBe("ocean");
     });
 
-    it("writes 'light' to localStorage and sets data-theme", () => {
-      setThemeMode("light");
-      expect(localStorage.setItem).toHaveBeenCalledWith("hermesbox:theme", "light");
-      expect(getDocumentTheme()).toBe("light");
+    it("resolves system to dark when OS prefers dark", () => {
+      mockMatchMedia(true);
+      setTheme("system");
+      expect(getDocumentTheme()).toBe("gruvbox-dark");
     });
 
-    it("writes 'system' to localStorage and sets data-theme to dark (mock matches dark)", () => {
-      setThemeMode("system");
-      expect(localStorage.setItem).toHaveBeenCalledWith("hermesbox:theme", "system");
-      expect(getDocumentTheme()).toBe("dark");
+    it("resolves system to atom-one-light when OS prefers light", () => {
+      mockMatchMedia(false);
+      setTheme("system");
+      expect(getDocumentTheme()).toBe("atom-one-light");
     });
 
     it("handles localStorage failure gracefully", () => {
       (localStorage.setItem as ReturnType<typeof vi.fn>).mockImplementation(() => {
         throw new Error("denied");
       });
-      expect(() => setThemeMode("dark")).not.toThrow();
+      expect(() => setTheme("dark")).not.toThrow();
       expect(getDocumentTheme()).toBe("dark");
     });
   });
 
   describe("getEffectiveTheme", () => {
-    it("returns 'dark' when stored setting is 'dark'", () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("dark");
-      expect(getEffectiveTheme()).toBe("dark");
+    it("returns 'dark' for dark presets", () => {
+      for (const preset of ["dark", "ocean", "sunset", "lavender", "gruvbox-dark"]) {
+        (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(preset);
+        expect(getEffectiveTheme()).toBe("dark");
+      }
     });
 
-    it("returns 'light' when stored setting is 'light'", () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("light");
-      expect(getEffectiveTheme()).toBe("light");
+    it("returns 'light' for light presets", () => {
+      for (const preset of ["grass", "atom-one-light"]) {
+        (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(preset);
+        expect(getEffectiveTheme()).toBe("light");
+      }
     });
 
-    it("returns 'dark' when stored setting is 'system' and mock matches dark", () => {
+    it("returns 'dark' when system + OS prefers dark", () => {
+      mockMatchMedia(true);
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("system");
       expect(getEffectiveTheme()).toBe("dark");
+    });
+
+    it("returns 'light' when system + OS prefers light", () => {
+      mockMatchMedia(false);
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("system");
+      expect(getEffectiveTheme()).toBe("light");
     });
   });
 
   describe("initTheme", () => {
-    it("applies stored dark theme on boot", () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("light");
+    it("applies stored preset on boot", () => {
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("ocean");
       initTheme();
-      expect(getDocumentTheme()).toBe("light");
+      expect(getDocumentTheme()).toBe("ocean");
     });
 
-    it("applies stored system theme and resolves to actual theme", () => {
+    it("resolves system to dark when OS prefers dark", () => {
+      mockMatchMedia(true);
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("system");
       initTheme();
-      expect(getDocumentTheme()).toBe("dark");
+      expect(getDocumentTheme()).toBe("gruvbox-dark");
+    });
+
+    it("resolves system to atom-one-light when OS prefers light", () => {
+      mockMatchMedia(false);
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("system");
+      initTheme();
+      expect(getDocumentTheme()).toBe("atom-one-light");
     });
   });
 });

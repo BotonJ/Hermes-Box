@@ -103,8 +103,8 @@
   --border-radius: var(--radius-lg);
 }
 
-/* === Light theme tokens (macOS Grass) === */
-:root[data-theme="light"] {
+/* === Grass theme tokens (macOS Grass) === */
+:root[data-theme="grass"] {
   --canvas: #3a5f3a;
   --surface-base: #426942;
   --surface-elevated: #4b734b;
@@ -188,13 +188,241 @@ body {
   color: var(--text-primary);
 }
 
-/* === Light theme scrollbar === */
-:root[data-theme="light"] ::-webkit-scrollbar-thumb {
+/* === Grass theme scrollbar === */
+:root[data-theme="grass"] ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15);
 }
 
-:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+:root[data-theme="grass"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
+}
+
+/* === Ocean theme tokens (blue-toned dark) === */
+:root[data-theme="ocean"] {
+  --canvas: #0b1622;
+  --surface-base: #0f1d2e;
+  --surface-elevated: #15263a;
+  --surface-card: #1b2f46;
+  --surface-hover: #213952;
+  --surface-active: #27435e;
+
+  --text-primary: #e0e8f0;
+  --text-secondary: #8ba4bc;
+  --text-muted: #5a7a96;
+
+  --accent: #4fc3f7;
+  --accent-hover: #81d4fa;
+  --accent-muted: rgba(79, 195, 247, 0.15);
+  --accent-subtle: rgba(79, 195, 247, 0.08);
+
+  --danger: #ef5350;
+  --danger-hover: #e57373;
+  --danger-muted: rgba(239, 83, 80, 0.15);
+
+  --success: #66bb6a;
+  --success-muted: rgba(102, 187, 106, 0.15);
+
+  --warning: #ffa726;
+  --warning-muted: rgba(255, 167, 38, 0.15);
+
+  --border: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-accent: rgba(79, 195, 247, 0.3);
+
+  --terminal-bg: #0d1926;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(79, 195, 247, 0.15);
+
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+}
+
+/* === Sunset theme tokens (warm dark) === */
+:root[data-theme="sunset"] {
+  --canvas: #1a0f0a;
+  --surface-base: #221510;
+  --surface-elevated: #2b1a14;
+  --surface-card: #342019;
+  --surface-hover: #3d261e;
+  --surface-active: #462c23;
+
+  --text-primary: #f5ece6;
+  --text-secondary: #c4a68e;
+  --text-muted: #8a7060;
+
+  --accent: #ffab40;
+  --accent-hover: #ffc570;
+  --accent-muted: rgba(255, 171, 64, 0.15);
+  --accent-subtle: rgba(255, 171, 64, 0.08);
+
+  --danger: #ef5350;
+  --danger-hover: #e57373;
+  --danger-muted: rgba(239, 83, 80, 0.15);
+
+  --success: #81c784;
+  --success-muted: rgba(129, 199, 132, 0.15);
+
+  --warning: #ffca28;
+  --warning-muted: rgba(255, 202, 40, 0.15);
+
+  --border: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-accent: rgba(255, 171, 64, 0.3);
+
+  --terminal-bg: #1e120d;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(255, 171, 64, 0.15);
+
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+}
+
+/* === Lavender theme tokens (purple-toned dark) === */
+:root[data-theme="lavender"] {
+  --canvas: #110e1a;
+  --surface-base: #171322;
+  --surface-elevated: #1e1830;
+  --surface-card: #251e3d;
+  --surface-hover: #2c244a;
+  --surface-active: #332a57;
+
+  --text-primary: #ece6f5;
+  --text-secondary: #a999c4;
+  --text-muted: #7a6a96;
+
+  --accent: #b388ff;
+  --accent-hover: #d1b3ff;
+  --accent-muted: rgba(179, 136, 255, 0.15);
+  --accent-subtle: rgba(179, 136, 255, 0.08);
+
+  --danger: #ef5350;
+  --danger-hover: #e57373;
+  --danger-muted: rgba(239, 83, 80, 0.15);
+
+  --success: #69f0ae;
+  --success-muted: rgba(105, 240, 174, 0.15);
+
+  --warning: #ffd740;
+  --warning-muted: rgba(255, 215, 64, 0.15);
+
+  --border: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-accent: rgba(179, 136, 255, 0.3);
+
+  --terminal-bg: #141020;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(179, 136, 255, 0.15);
+
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+}
+
+/* === Gruvbox Dark theme tokens === */
+:root[data-theme="gruvbox-dark"] {
+  --canvas: #1d2021;
+  --surface-base: #282828;
+  --surface-elevated: #32302f;
+  --surface-card: #3c3836;
+  --surface-hover: #504945;
+  --surface-active: #665c54;
+
+  --text-primary: #ebdbb2;
+  --text-secondary: #a89984;
+  --text-muted: #928374;
+
+  --accent: #d79921;
+  --accent-hover: #fabd2f;
+  --accent-muted: rgba(215, 153, 33, 0.2);
+  --accent-subtle: rgba(215, 153, 33, 0.1);
+
+  --danger: #cc241d;
+  --danger-hover: #fb4934;
+  --danger-muted: rgba(204, 36, 29, 0.15);
+
+  --success: #98971a;
+  --success-muted: rgba(152, 151, 26, 0.15);
+
+  --warning: #d79921;
+  --warning-muted: rgba(215, 153, 33, 0.15);
+
+  --border: rgba(235, 219, 178, 0.1);
+  --border-subtle: rgba(235, 219, 178, 0.06);
+  --border-accent: rgba(215, 153, 33, 0.3);
+
+  --terminal-bg: #282828;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(215, 153, 33, 0.15);
+
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+}
+
+/* === Ghostty Atom One Light theme tokens === */
+:root[data-theme="atom-one-light"] {
+  --canvas: #fafafa;
+  --surface-base: #e5e5e6;
+  --surface-elevated: #dcdfe3;
+  --surface-card: #d3d7dc;
+  --surface-hover: #c8cdd2;
+  --active: #bec4ca;
+
+  --text-primary: #383a42;
+  --text-secondary: #636773;
+  --text-muted: #9d9fa5;
+
+  --accent: #4078f2;
+  --accent-hover: #61afef;
+  --accent-muted: rgba(64, 120, 242, 0.15);
+  --accent-subtle: rgba(64, 120, 242, 0.08);
+
+  --danger: #e06c75;
+  --danger-hover: #c0555e;
+  --danger-muted: rgba(224, 108, 117, 0.15);
+
+  --success: #50a14f;
+  --success-muted: rgba(80, 161, 79, 0.15);
+
+  --warning: #c18401;
+  --warning-muted: rgba(193, 132, 1, 0.15);
+
+  --border: rgba(56, 58, 66, 0.12);
+  --border-subtle: rgba(56, 58, 66, 0.08);
+  --border-accent: rgba(64, 120, 242, 0.3);
+
+  --terminal-bg: #fafafa;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(64, 120, 242, 0.1);
+
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+}
+
+:root[data-theme="atom-one-light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+:root[data-theme="atom-one-light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* App layout is in App.module.css */
