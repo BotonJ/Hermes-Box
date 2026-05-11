@@ -599,6 +599,18 @@ pub fn generate_approval_config(
     generate_approval_config_inner(config_type, bridge_dir, extra)
 }
 
+#[tauri::command]
+pub fn play_sound(sound_name: String) -> Result<(), String> {
+    log::info!("[approval] play_sound called with: {}", sound_name);
+    let sound_path = format!("/System/Library/Sounds/{sound_name}.aiff");
+    log::info!("[approval] full path: {}", sound_path);
+    std::process::Command::new("afplay")
+        .arg(&sound_path)
+        .output()
+        .map_err(|e| format!("failed to play sound: {e}"))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

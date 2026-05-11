@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+
 const STORAGE_ENABLED = "hermesbox:approval-sound";
 const STORAGE_CLAUDE_SOUND = "hermesbox:sound-claude";
 const STORAGE_HERMES_SOUND = "hermesbox:sound-hermes";
@@ -125,20 +127,29 @@ export function setHermesCustomPath(path: string): void {
 
 // --- Playback ---
 
-export function playSoundById(soundId: string): void {
+export async function playSoundById(soundId: string): Promise<void> {
+  // Try Rust backend first (reliable on macOS)
+  if (SYSTEM_SOUNDS.includes(soundId as SystemSound)) {
+    try {
+      await invoke("play_sound", { soundName: soundId });
+      return;
+    } catch {
+      // Fall through to HTMLAudioElement
+    }
+  }
+  // Fallback to HTMLAudioElement for custom paths
   try {
     let audio = audioCache.get(soundId);
     if (!audio) {
       if (SYSTEM_SOUNDS.includes(soundId as SystemSound)) {
         audio = new Audio(`file:///System/Library/Sounds/${soundId}.aiff`);
       } else {
-        // Treat as custom file path
         audio = new Audio(`file://${soundId}`);
       }
       audioCache.set(soundId, audio);
     }
     audio.currentTime = 0;
-    audio.play().catch(() => {});
+    await audio.play().catch(() => {});
   } catch {
     // Non-critical
   }
