@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { platform } from "@tauri-apps/plugin-os";
 import { homeDir } from "@tauri-apps/api/path";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Welcome } from "./components/Welcome";
 import { CLISelector } from "./components/CLISelector";
 import { TabBar, type TabInfo } from "./components/TabBar";
@@ -88,6 +89,21 @@ export function App() {
     const unlisten = listenForApprovals((request) => {
       setPendingApprovals((prev) => [...prev, request]);
       playApprovalSound(request.source ?? "claude");
+    });
+    return () => { unlisten.then((fn) => fn()).catch(() => {}); };
+  }, []);
+
+  // Show and focus window when approval watcher emits show-main-window
+  useEffect(() => {
+    const unlisten = listen("show-main-window", async () => {
+      const win = getCurrentWindow();
+      if (await win.isMinimized()) {
+        await win.unminimize();
+      }
+      if (!await win.isVisible()) {
+        await win.show();
+      }
+      await win.setFocus();
     });
     return () => { unlisten.then((fn) => fn()).catch(() => {}); };
   }, []);

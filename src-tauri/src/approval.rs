@@ -1,4 +1,3 @@
-use crate::window;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -157,7 +156,7 @@ pub fn start_watcher(app: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                             };
                             if let Some(req) = parse_approval_request(id, &raw) {
                                 let _ = app.emit("approval-request", &req);
-                                window::show_and_focus_main_window(&app);
+                                let _ = app.emit("show-main-window", ());
                             }
                         }
                     }
@@ -601,12 +600,10 @@ pub fn generate_approval_config(
 
 #[tauri::command]
 pub fn play_sound(sound_name: String) -> Result<(), String> {
-    log::info!("[approval] play_sound called with: {}", sound_name);
     let sound_path = format!("/System/Library/Sounds/{sound_name}.aiff");
-    log::info!("[approval] full path: {}", sound_path);
     std::process::Command::new("afplay")
         .arg(&sound_path)
-        .output()
+        .spawn()
         .map_err(|e| format!("failed to play sound: {e}"))?;
     Ok(())
 }
