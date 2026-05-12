@@ -80,5 +80,9 @@ describe("xterm-themes", () => {
     it("lavender has distinct background", () => {
       expect(getXtermTheme("lavender").background).not.toBe(getXtermTheme("dark").background);
     });
+
+    it("flexoki-light has cream background", () => {
+      expect(getXtermTheme("flexoki-light").background).toBe("#fdf6e3");
+    });
   });
 });

@@ -199,6 +199,31 @@ const ATOM_ONE_LIGHT: XtermTheme = {
   brightWhite: "#ffffff",
 };
 
+// Flexoki Light
+const FLEXOKI_LIGHT: XtermTheme = {
+  background: "#fdf6e3",
+  foreground: "#657b83",
+  cursor: "#657b83",
+  cursorAccent: "#fdf6e3",
+  selectionBackground: "#eee8d5",
+  black: "#f5f5f5",
+  red: "#d95763",
+  green: "#859900",
+  yellow: "#b58900",
+  blue: "#268bd2",
+  magenta: "#d33682",
+  cyan: "#2aa198",
+  white: "#839496",
+  brightBlack: "#657b83",
+  brightRed: "#d95763",
+  brightGreen: "#859900",
+  brightYellow: "#b58900",
+  brightBlue: "#268bd2",
+  brightMagenta: "#d33682",
+  brightCyan: "#2aa198",
+  brightWhite: "#fdf6e3",
+};
+
 const THEMES: Record<ThemeChoice, XtermTheme> = {
   dark: OBSIDIAN,
   grass: GRASS,
@@ -207,6 +232,7 @@ const THEMES: Record<ThemeChoice, XtermTheme> = {
   lavender: LAVENDER,
   "gruvbox-dark": GRUVBOX_DARK,
   "atom-one-light": ATOM_ONE_LIGHT,
+  "flexoki-light": FLEXOKI_LIGHT,
   system: OBSIDIAN, // resolved at runtime by theme.ts
 };
 

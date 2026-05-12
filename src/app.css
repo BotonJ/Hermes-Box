@@ -375,12 +375,12 @@ body {
 
 /* === Ghostty Atom One Light theme tokens === */
 :root[data-theme="atom-one-light"] {
-  --canvas: #fafafa;
-  --surface-base: #e5e5e6;
-  --surface-elevated: #dcdfe3;
-  --surface-card: #d3d7dc;
-  --surface-hover: #c8cdd2;
-  --active: #bec4ca;
+  --canvas: #fafaf8;
+  --surface-base: #eae8e3;
+  --surface-elevated: #e2dfd8;
+  --surface-card: #dad6cd;
+  --surface-hover: #d2cdc3;
+  --active: #c8c2b7;
 
   --text-primary: #383a42;
   --text-secondary: #636773;
@@ -423,6 +423,57 @@ body {
 
 :root[data-theme="atom-one-light"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="flexoki-light"] {
+  --canvas: #fdf6e3;
+  --surface-base: #eee8d5;
+  --surface-elevated: #e8e1c8;
+  --surface-card: #e0d8bf;
+  --surface-hover: #d8cfb5;
+  --active: #cfc5a8;
+
+  --text-primary: #657b83;
+  --text-secondary: #7b8c93;
+  --text-muted: #93a1a1;
+
+  --accent: #268bd2;
+  --accent-hover: #4aa3df;
+  --accent-muted: rgba(38, 139, 210, 0.15);
+  --accent-subtle: rgba(38, 139, 210, 0.08);
+
+  --danger: #d95763;
+  --danger-hover: #c04050;
+  --danger-muted: rgba(217, 87, 99, 0.15);
+
+  --success: #859900;
+  --success-muted: rgba(133, 153, 0, 0.15);
+
+  --warning: #b58900;
+  --warning-muted: rgba(181, 137, 0, 0.15);
+
+  --border: rgba(101, 123, 131, 0.15);
+  --border-subtle: rgba(101, 123, 131, 0.08);
+  --border-accent: rgba(38, 139, 210, 0.3);
+
+  --terminal-bg: #fdf6e3;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(38, 139, 210, 0.1);
+
+  --bg-primary: var(--canvas);
+  --bg-card: var(--surface-elevated);
+}
+
+:root[data-theme="flexoki-light"] ::-webkit-scrollbar-thumb {
+  background: rgba(101, 123, 131, 0.2);
+}
+
+:root[data-theme="flexoki-light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(101, 123, 131, 0.35);
 }
 
 /* App layout is in App.module.css */
