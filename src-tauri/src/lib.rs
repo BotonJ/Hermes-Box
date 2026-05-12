@@ -2,6 +2,7 @@ mod approval;
 mod pty;
 mod tray;
 mod window;
+mod terminal;
 
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
@@ -108,6 +109,7 @@ pub fn run() {
             approval::generate_approval_config,
             approval::setup_bridge_dir,
             approval::play_sound,
+            terminal::launch_in_terminal,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
