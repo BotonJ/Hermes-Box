@@ -48,6 +48,7 @@ export function Settings({ onBack }: SettingsProps) {
 
   useEffect(() => {
     isAutostartEnabled().then(setAutostart).catch(() => setAutostart(false));
+    applyHermesColors(getEffectiveTheme()).catch(() => {});
   }, []);
 
   useEffect(() => {

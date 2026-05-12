@@ -30,33 +30,55 @@ describe("xterm-themes", () => {
     });
   });
 
-  describe("LIGHT (macOS Grass)", () => {
-    const light = getXtermTheme("light");
+  describe("GRASS (macOS Grass)", () => {
+    const grass = getXtermTheme("grass");
 
     it("background is green", () => {
-      expect(light.background).toBe("#487147");
+      expect(grass.background).toBe("#487147");
     });
 
     it("foreground is near-white", () => {
-      expect(light.foreground).toBe("#f4f4f4");
+      expect(grass.foreground).toBe("#f4f4f4");
     });
 
     it("brightBlack (8) is dark gray", () => {
-      expect(light.brightBlack).toBe("#555753");
+      expect(grass.brightBlack).toBe("#555753");
     });
 
     it("brightWhite (15) is near-white", () => {
-      expect(light.brightWhite).toBe("#eeeeec");
+      expect(grass.brightWhite).toBe("#eeeeec");
     });
 
     it("cursor matches foreground", () => {
-      expect(light.cursor).toBe("#f4f4f4");
+      expect(grass.cursor).toBe("#f4f4f4");
     });
   });
 
-  describe("dark vs light", () => {
+  describe("dark vs grass", () => {
     it("should have different backgrounds", () => {
-      expect(getXtermTheme("dark").background).not.toBe(getXtermTheme("light").background);
+      expect(getXtermTheme("dark").background).not.toBe(getXtermTheme("grass").background);
+    });
+  });
+
+  describe("system", () => {
+    it("falls back to dark theme", () => {
+      const sys = getXtermTheme("system");
+      const dark = getXtermTheme("dark");
+      expect(sys.background).toBe(dark.background);
+    });
+  });
+
+  describe("new presets", () => {
+    it("ocean has distinct background", () => {
+      expect(getXtermTheme("ocean").background).not.toBe(getXtermTheme("dark").background);
+    });
+
+    it("sunset has distinct background", () => {
+      expect(getXtermTheme("sunset").background).not.toBe(getXtermTheme("dark").background);
+    });
+
+    it("lavender has distinct background", () => {
+      expect(getXtermTheme("lavender").background).not.toBe(getXtermTheme("dark").background);
     });
   });
 });

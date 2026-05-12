@@ -37,8 +37,12 @@
     "cliCommandPlaceholder": "命令（如 codex）"
   },
   "theme": {
-    "dark": "深色",
+    "dark": "黑曜石",
     "light": "浅色",
+    "grass": "草地",
+    "ocean": "海洋",
+    "sunset": "日落",
+    "lavender": "薰衣草",
     "system": "跟随系统"
   },
   "terminal": {

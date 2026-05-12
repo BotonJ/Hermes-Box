@@ -1,4 +1,5 @@
 import { t } from "../lib/i18n";
+import { CLI_ICONS } from "../lib/cli-icons";
 import { useLocale } from "../lib/use-locale";
 import styles from "./TabBar.module.css";
 
@@ -19,11 +20,6 @@ interface TabBarProps {
   onSettingsClose: () => void;
 }
 
-const CLI_ICONS: Record<string, string> = {
-  hermes: "⚡",
-  claude: "🤖",
-};
-
 export function TabBar({ tabs, activeId, settingsActive, onSwitch, onClose, onAdd, onSettings, onSettingsClose }: TabBarProps) {
   useLocale();
 
@@ -42,7 +38,11 @@ export function TabBar({ tabs, activeId, settingsActive, onSwitch, onClose, onAd
               class={`${styles.tab} ${tab.id === activeId ? styles.active : ""}`}
               onClick={handleSwitch}
             >
-              <span class={styles.tabIcon}>{CLI_ICONS[tab.cliId] ?? ">"}</span>
+              <span class={styles.tabIcon}>
+                  {tab.cliId in CLI_ICONS
+                    ? <img src={CLI_ICONS[tab.cliId]} alt={tab.cliId} />
+                    : ">"}
+                </span>
               <span class={styles.tabTitle}>{tab.title}</span>
               <span
                 class={styles.closeBtn}

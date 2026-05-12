@@ -7,13 +7,13 @@ const HERMES_CLI =
 const LIGHT_COLORS = { banner: "#C5A882", prompt: "#000000" };
 
 /** 深色主题下的 Hermes 颜色（更深，可读） */
-const DARK_COLORS = { banner: "#6B5B4A", prompt: "#383a42" };
+const DARK_COLORS = { banner: "#C5A882", prompt: "#FFF8DC" };
 
 async function patchBanner(bannerColor: string): Promise<void> {
   const path = `${HERMES_CLI}/banner.py`;
   let content = await readTextFile(path);
   // 替换所有硬编码的 #C5A882 或 #6B5B4A 为目标颜色
-  content = content.replace(/#C5A882|#6B5B4A/g, bannerColor);
+  content = content.replace(/#C5A882|#6B5B4A|#FFF8DC/g, bannerColor);
   await writeTextFile(path, content);
 }
 

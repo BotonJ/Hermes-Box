@@ -294,8 +294,9 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       const term = termRef.current;
       if (!term) return;
       const t = document.documentElement.dataset.theme;
-      if (t === "light" || t === "dark") {
-        term.options.theme = getXtermTheme(t);
+      if (t) {
+        // data-theme matches ThemeChoice values; getXtermTheme handles unknowns via fallback
+        term.options.theme = getXtermTheme(t as import("../lib/theme").ThemeChoice);
       }
     });
 

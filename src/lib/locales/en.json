@@ -37,8 +37,12 @@
     "cliCommandPlaceholder": "Command (e.g. codex)"
   },
   "theme": {
-    "dark": "Dark",
+    "dark": "Obsidian",
     "light": "Light",
+    "grass": "Grass",
+    "ocean": "Ocean",
+    "sunset": "Sunset",
+    "lavender": "Lavender",
     "system": "Follow System"
   },
   "terminal": {

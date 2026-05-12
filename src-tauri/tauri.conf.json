@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "HermesBox",
-        "width": 900,
-        "height": 600,
+        "width": 720,
+        "height": 480,
         "resizable": true,
         "fullscreen": false,
         "transparent": false

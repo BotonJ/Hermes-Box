@@ -10,7 +10,7 @@ use objc::{msg_send, sel, sel_impl};
 const POSITION_FILE: &str = "window-position.json";
 const TMP_SUFFIX: &str = ".tmp";
 const MIN_DIM: u32 = 100;
-const MAX_DIM: u32 = 10000;
+const MAX_DIM: u32 = 4000;
 const MIN_COORD: i32 = -5000;
 const MAX_COORD: i32 = 10000;
 

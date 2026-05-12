@@ -1,6 +1,7 @@
 import { CLI_REGISTRY } from "../lib/cli-detect";
 import type { DetectResult, CLIMeta } from "../lib/cli-detect";
 import { getCustomCLIs, customCLIsToMeta } from "../lib/custom-clis";
+import { CLI_ICONS } from "../lib/cli-icons";
 import { t } from "../lib/i18n";
 import { useLocale } from "../lib/use-locale";
 import styles from "./CLISelector.module.css";
@@ -45,7 +46,7 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
                 onClick={() => onSelect(result.id, result.path!)}
               >
                 <div class={styles.icon}>
-                  {result.id === "hermes" ? "⚡" : result.id === "claude" ? "🤖" : "💻"}
+                  <img src={CLI_ICONS[result.id] ?? CLI_ICONS.shell} alt={meta.label} />
                 </div>
                 <div class={styles.info}>
                   <h2 class={styles.label}>{meta.label}</h2>
@@ -59,7 +60,7 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
           class={styles.card}
           onClick={handleSelectShell}
         >
-          <div class={styles.icon}>⬛</div>
+          <div class={styles.icon}><img src={CLI_ICONS.shell} alt="Shell" /></div>
           <div class={styles.info}>
             <h2 class={styles.label}>{t("cli.shell")}</h2>
             <p class={styles.description}>{t("cli.shellDesc")}</p>
