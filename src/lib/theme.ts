@@ -9,6 +9,7 @@ export const THEME_PRESETS = [
   "lavender",
   "gruvbox-dark",
   "atom-one-light",
+  "flexoki-light",
   "system",
 ] as const;
 
@@ -74,7 +75,7 @@ export function setTheme(choice: ThemeChoice): void {
 export function getEffectiveTheme(): Theme {
   const dataTheme = resolveDataTheme(getTheme());
   // grass and atom-one-light are light themes; everything else is dark
-  return dataTheme === "grass" || dataTheme === "atom-one-light" ? "light" : "dark";
+  return dataTheme === "grass" || dataTheme === "atom-one-light" || dataTheme === "flexoki-light" ? "light" : "dark";
 }
 
 /** Initializes the theme system on app startup. */
