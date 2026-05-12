@@ -99,3 +99,31 @@
   color: var(--danger);
   margin: var(--space-xxs) 0 0;
 }
+
+.cardFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
+  align-self: center;
+}
+
+.openTerminalBtn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.openTerminalBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
