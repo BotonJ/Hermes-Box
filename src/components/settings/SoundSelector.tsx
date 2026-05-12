@@ -56,7 +56,6 @@ function SoundPicker({
   }
 
   async function handlePreview() {
-    console.log("[SoundPicker] preview localValue:", localValue, "customPath:", localCustomPath);
     if (localValue === "custom" && localCustomPath) {
       await playSoundById(localCustomPath);
     } else {

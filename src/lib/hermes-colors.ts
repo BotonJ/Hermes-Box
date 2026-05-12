@@ -1,39 +1,64 @@
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 
-const HERMES_CLI =
-  "/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/hermes_cli";
+const HERMES_CLI_KEY = "hermesbox:hermes-cli-path";
 
-/** 浅色主题下的 Hermes 颜色（当前硬编码值） */
+function getHermesCliPath(): string {
+  try {
+    return localStorage.getItem(HERMES_CLI_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Light-theme Hermes colors (warm tones). */
 const LIGHT_COLORS = { banner: "#C5A882", prompt: "#000000" };
 
-/** 深色主题下的 Hermes 颜色（更深，可读） */
+/** Dark-theme Hermes colors (deeper, readable). */
 const DARK_COLORS = { banner: "#C5A882", prompt: "#FFF8DC" };
 
 async function patchBanner(bannerColor: string): Promise<void> {
-  const path = `${HERMES_CLI}/banner.py`;
-  let content = await readTextFile(path);
-  // 替换所有硬编码的 #C5A882 或 #6B5B4A 为目标颜色
-  content = content.replace(/#C5A882|#6B5B4A|#FFF8DC/g, bannerColor);
-  await writeTextFile(path, content);
+  const base = getHermesCliPath();
+  if (!base) return;
+  const path = `${base}/banner.py`;
+  try {
+    let content = await readTextFile(path);
+    const original = content;
+    content = content.replace(/#C5A882|#6B5B4A|#FFF8DC/g, bannerColor);
+    if (content !== original) {
+      await writeTextFile(path, content);
+    }
+  } catch {
+    // Hermes CLI not installed or file not accessible — skip silently
+  }
 }
 
 async function patchSkinEngine(bannerColor: string, promptColor: string): Promise<void> {
-  const path = `${HERMES_CLI}/skin_engine.py`;
-  let content = await readTextFile(path);
-  content = content.replace(
-    /"banner_text":\s*"[^"]*"/,
-    `"banner_text": "${bannerColor}"`,
-  );
-  content = content.replace(
-    /"prompt":\s*"[^"]*"/,
-    `"prompt": "${promptColor}"`,
-  );
-  await writeTextFile(path, content);
+  const base = getHermesCliPath();
+  if (!base) return;
+  const path = `${base}/skin_engine.py`;
+  try {
+    let content = await readTextFile(path);
+    const original = content;
+    content = content.replace(
+      /"banner_text":\s*"[^"]*"/,
+      `"banner_text": "${bannerColor}"`,
+    );
+    content = content.replace(
+      /"prompt":\s*"[^"]*"/,
+      `"prompt": "${promptColor}"`,
+    );
+    if (content !== original) {
+      await writeTextFile(path, content);
+    }
+  } catch {
+    // Hermes CLI not installed or file not accessible — skip silently
+  }
 }
 
 /**
- * 根据 HermesBox 主题更新 Hermes CLI 的颜色配置。
- * 浅色主题 → 还原为原始暖色；深色主题 → 切换为更深的可读色。
+ * Updates Hermes CLI color config to match the current HermesBox theme.
+ * Light theme → warm original colors; Dark theme → deeper readable colors.
+ * No-op if Hermes CLI path is not configured.
  */
 export async function applyHermesColors(
   theme: "light" | "dark",

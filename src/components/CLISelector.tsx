@@ -61,7 +61,9 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
                     title={t("selector.openTerminal")}
                     onClick={(e) => {
                       e.stopPropagation();
-                      launchInTerminal(result.path!).catch(console.error);
+                      launchInTerminal(result.path!).catch((err) =>
+                        console.error("[terminal-launch]", err),
+                      );
                     }}
                   >
                     {t("selector.openTerminal")}
