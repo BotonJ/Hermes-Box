@@ -96,11 +96,23 @@ pub fn load_position_from_disk(app: &tauri::AppHandle) -> Option<WindowPosition>
         .ok()
         .and_then(|json| serde_json::from_str::<WindowPosition>(&json).ok())?;
 
-    if !is_valid_position(&pos) {
-        log::warn!("saved window position has invalid values, ignoring");
-        return None;
+    if is_valid_position(&pos) {
+        return Some(pos);
     }
-    Some(pos)
+    // Try clamping (handles migration from old MAX_DIM=10000)
+    match clamp_position(&pos) {
+        Some(clamped) => {
+            log::info!(
+                "clamped window position from {}x{} to {}x{}",
+                pos.width, pos.height, clamped.width, clamped.height
+            );
+            Some(clamped)
+        }
+        None => {
+            log::warn!("saved window position has invalid values, ignoring");
+            None
+        }
+    }
 }
 
 fn is_valid_position(pos: &WindowPosition) -> bool {
@@ -112,6 +124,20 @@ fn is_valid_position(pos: &WindowPosition) -> bool {
         && pos.x <= MAX_COORD
         && pos.y >= MIN_COORD
         && pos.y <= MAX_COORD
+}
+
+/// Clamps position values that were valid under the old MAX_DIM (10000)
+/// to the current limits. Values below MIN_DIM are rejected entirely.
+pub fn clamp_position(pos: &WindowPosition) -> Option<WindowPosition> {
+    if pos.width < MIN_DIM || pos.height < MIN_DIM {
+        return None;
+    }
+    Some(WindowPosition {
+        x: pos.x.clamp(MIN_COORD, MAX_COORD),
+        y: pos.y.clamp(MIN_COORD, MAX_COORD),
+        width: pos.width.min(MAX_DIM),
+        height: pos.height.min(MAX_DIM),
+    })
 }
 
 pub fn read_window_position(window: &tauri::WebviewWindow) -> Option<WindowPosition> {
@@ -447,5 +473,59 @@ mod tests {
         assert_eq!(parsed.y, 600);
 
         cleanup_test_dir(&dir);
+    }
+
+    #[test]
+    fn clamp_migrates_oversized_dimensions() {
+        let pos = WindowPosition {
+            x: 100,
+            y: 200,
+            width: 8000,
+            height: 6000,
+        };
+        let clamped = clamp_position(&pos).unwrap();
+        assert_eq!(clamped.width, 4000);
+        assert_eq!(clamped.height, 4000);
+        assert_eq!(clamped.x, 100);
+        assert_eq!(clamped.y, 200);
+    }
+
+    #[test]
+    fn clamp_rejects_below_min() {
+        let pos = WindowPosition {
+            x: 100,
+            y: 200,
+            width: 50,
+            height: 600,
+        };
+        assert!(clamp_position(&pos).is_none());
+    }
+
+    #[test]
+    fn clamp_clamps_out_of_range_coords() {
+        let pos = WindowPosition {
+            x: -8000,
+            y: 15000,
+            width: 800,
+            height: 600,
+        };
+        let clamped = clamp_position(&pos).unwrap();
+        assert_eq!(clamped.x, -5000);
+        assert_eq!(clamped.y, 10000);
+    }
+
+    #[test]
+    fn clamp_leaves_valid_position_unchanged() {
+        let pos = WindowPosition {
+            x: 100,
+            y: 200,
+            width: 800,
+            height: 600,
+        };
+        let clamped = clamp_position(&pos).unwrap();
+        assert_eq!(clamped.x, pos.x);
+        assert_eq!(clamped.y, pos.y);
+        assert_eq!(clamped.width, pos.width);
+        assert_eq!(clamped.height, pos.height);
     }
 }

@@ -24,11 +24,14 @@ pub fn launch_in_default_terminal(command: &str) -> Result<(), String> {
     let script_path = get_script_path()?;
 
     // Build script: run CLI, then replace with interactive shell to keep window open.
-    // Note: `rm "$0"` after `exec` is unreachable but harmless as documentation.
+    // Script self-deletes after exec to prevent temp file accumulation.
     let script_content = format!(
-        "#!/bin/bash\ncd \"$HOME\"\n{}\nexec $SHELL\n",
+        "#!/bin/bash\ncd \"$HOME\"\ntrap 'rm -f \"$0\"' EXIT\n{}\nexec $SHELL\n",
         shell_escape(command)
     );
+
+    // Clean up stale .command files older than 1 day on each launch
+    cleanup_stale_scripts(&script_path.parent().unwrap().to_path_buf());
 
     // Ensure directory exists
     fs::create_dir_all(script_path.parent().unwrap())
@@ -57,7 +60,7 @@ fn set_executable(path: &std::path::Path) -> Result<(), String> {
     let mut perms = fs::metadata(path)
         .map_err(|e| e.to_string())?
         .permissions();
-    perms.set_mode(0o755);
+    perms.set_mode(0o700);
     fs::set_permissions(path, perms)
         .map_err(|e| e.to_string())
 }
@@ -67,6 +70,25 @@ fn get_script_path() -> Result<PathBuf, String> {
     let tmp_dir = PathBuf::from(home).join(SCRIPT_DIR);
     let filename = format!("cli-{}.command", uuid::Uuid::new_v4());
     Ok(tmp_dir.join(filename))
+}
+
+/// Removes .command files older than 24 hours from the tmp directory.
+fn cleanup_stale_scripts(dir: &PathBuf) {
+    let cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(86_400);
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|e| e == "command") {
+                if let Ok(meta) = entry.metadata() {
+                    if let Ok(modified) = meta.modified() {
+                        if modified < cutoff {
+                            let _ = fs::remove_file(&path);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[tauri::command]

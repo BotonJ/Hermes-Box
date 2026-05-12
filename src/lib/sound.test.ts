@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   isSoundEnabled,
   setSoundEnabled,
@@ -6,8 +6,18 @@ import {
   setClaudeSound,
   getHermesSound,
   setHermesSound,
+  getHermesCustomPath,
+  setHermesCustomPath,
+  getClaudeCustomPath,
+  setClaudeCustomPath,
+  playSoundById,
+  playApprovalSound,
   SYSTEM_SOUNDS,
 } from "./sound";
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
+}));
 
 describe("sound", () => {
   beforeEach(() => {
@@ -77,6 +87,53 @@ describe("sound", () => {
 
     it("is non-empty", () => {
       expect(SYSTEM_SOUNDS.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("custom paths", () => {
+    it("stores and retrieves claude custom path", () => {
+      setClaudeCustomPath("/music/alert.mp3");
+      expect(getClaudeCustomPath()).toBe("/music/alert.mp3");
+    });
+
+    it("stores and retrieves hermes custom path", () => {
+      setHermesCustomPath("/music/chime.wav");
+      expect(getHermesCustomPath()).toBe("/music/chime.wav");
+    });
+
+    it("returns empty string when no custom path set", () => {
+      expect(getClaudeCustomPath()).toBe("");
+      expect(getHermesCustomPath()).toBe("");
+    });
+  });
+
+  describe("playSoundById", () => {
+    it("calls Rust backend for system sounds", async () => {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockResolvedValue(undefined);
+
+      await playSoundById("Ping");
+
+      expect(invoke).toHaveBeenCalledWith("play_sound", { soundName: "Ping" });
+    });
+
+    it("falls back to HTMLAudioElement when invoke fails", async () => {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockRejectedValue(new Error("not available"));
+
+      // Should not throw
+      await expect(playSoundById("Ping")).resolves.toBeUndefined();
+    });
+  });
+
+  describe("playApprovalSound", () => {
+    it("plays nothing when sound is disabled", async () => {
+      const { invoke } = await import("@tauri-apps/api/core");
+      vi.mocked(invoke).mockClear();
+      setSoundEnabled(false);
+      playApprovalSound("claude");
+      // Should not invoke — sound is disabled
+      expect(invoke).not.toHaveBeenCalled();
     });
   });
 });
