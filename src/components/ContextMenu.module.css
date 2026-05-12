@@ -1,0 +1,101 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 180px;
+  padding: var(--space-xxs) 0;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-xxs) var(--space-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  text-align: left;
+}
+
+.item:hover {
+  background: var(--surface-hover);
+}
+
+.itemIcon {
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.itemDisabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.separator {
+  height: 1px;
+  margin: var(--space-xxs) 0;
+  background: var(--border);
+}
+
+.colorSection {
+  padding: var(--space-xxs) var(--space-sm);
+}
+
+.colorLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xxs);
+}
+
+.colorRow {
+  display: flex;
+  gap: var(--space-xxs);
+  flex-wrap: wrap;
+}
+
+.colorDot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.colorDot:hover {
+  transform: scale(1.2);
+}
+
+.colorDotActive {
+  border-color: var(--text-primary);
+}
+
+.colorDotClear {
+  background: transparent;
+  border: 1px dashed var(--text-muted);
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}

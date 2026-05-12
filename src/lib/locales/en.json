@@ -51,6 +51,16 @@
   "terminal": {
     "exited": "[Process exited with code {{exitCode}}]"
   },
+  "contextMenu": {
+    "openTerminal": "Open in Terminal",
+    "lock": "Lock Tab",
+    "unlock": "Unlock Tab",
+    "rename": "Rename",
+    "tabColor": "Tab Color",
+    "copyTitle": "Copy Title",
+    "closeTab": "Close Tab",
+    "closeOtherTabs": "Close Other Tabs"
+  },
   "approval": {
     "title": "Approval Required",
     "approve": "Approve",
