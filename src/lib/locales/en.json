@@ -5,7 +5,8 @@
     "subtitle": "Choose an AI assistant to get started. No terminal knowledge needed."
   },
   "selector": {
-    "heading": "Choose an Assistant"
+    "heading": "Choose an Assistant",
+    "openTerminal": "Open in Terminal"
   },
   "settings": {
     "title": "Settings",
