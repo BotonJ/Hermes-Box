@@ -5,7 +5,8 @@
     "subtitle": "选择 AI 助手即可开始，无需终端知识。"
   },
   "selector": {
-    "heading": "选择助手"
+    "heading": "选择助手",
+    "openTerminal": "打开终端"
   },
   "settings": {
     "title": "设置",
