@@ -11,6 +11,11 @@ const defaultProps = {
   settingsActive: false,
   onSettings: vi.fn(),
   onSettingsClose: vi.fn(),
+  onToggleLock: vi.fn(),
+  onRename: vi.fn(),
+  onColorChange: vi.fn(),
+  onCopyTitle: vi.fn(),
+  onCloseOtherTabs: vi.fn(),
 };
 
 describe("TabBar", () => {

@@ -131,6 +131,9 @@ export function App() {
     const restored: Tab[] = saved.map((meta) => ({
       id: crypto.randomUUID(),
       ...meta,
+      customTitle: meta.customTitle,
+      color: meta.color,
+      locked: meta.locked,
     }));
     setTabs(restored);
     setActiveTabId(restored[0].id);
@@ -144,8 +147,8 @@ export function App() {
       saveSkipFirst.current = false;
       return;
     }
-    saveTabs(tabs.map(({ cliId, title, shell, shellArgs, env, command }) => ({
-      cliId, title, shell, shellArgs, env, command,
+    saveTabs(tabs.map(({ cliId, title, shell, shellArgs, env, command, customTitle, color, locked }) => ({
+      cliId, title, shell, shellArgs, env, command, customTitle, color, locked,
     })));
   }, [tabs]);
 
@@ -252,6 +255,8 @@ export function App() {
   }
 
   function handleTabClose(id: string) {
+    const tab = tabs.find((t) => t.id === id);
+    if (tab?.locked) return;
     setTabs((prev) => {
       const next = prev.filter((t) => t.id !== id);
       if (next.length === 0) {
@@ -270,11 +275,54 @@ export function App() {
   }
 
   function handleTabExit(tabId: string) {
-    handleTabClose(tabId);
+    // Process exit always closes, even if locked
+    setTabs((prev) => {
+      const next = prev.filter((t) => t.id !== tabId);
+      if (next.length === 0) {
+        setActiveTabId(null);
+        setView("selector");
+      } else if (activeTabId === tabId) {
+        const idx = prev.findIndex((t) => t.id === tabId);
+        setActiveTabId(next[Math.min(idx, next.length - 1)].id);
+      }
+      return next;
+    });
   }
 
   function handleAddTab() {
     setView("selector");
+  }
+
+  function handleToggleLock(id: string) {
+    setTabs((prev) => prev.map((t) => t.id === id ? { ...t, locked: !t.locked } : t));
+  }
+
+  function handleRename(id: string, newTitle: string) {
+    setTabs((prev) => prev.map((t) => t.id === id ? { ...t, customTitle: newTitle } : t));
+  }
+
+  function handleColorChange(id: string, color: string | undefined) {
+    setTabs((prev) => prev.map((t) => t.id === id ? { ...t, color } : t));
+  }
+
+  function handleCopyTitle(id: string) {
+    const tab = tabs.find((t) => t.id === id);
+    if (tab) {
+      navigator.clipboard.writeText(tab.customTitle ?? tab.title).catch(() => {});
+    }
+  }
+
+  function handleCloseOtherTabs(id: string) {
+    setTabs((prev) => {
+      const target = prev.find((t) => t.id === id);
+      if (!target) return prev;
+      const next = prev.filter((t) => t.id === id || t.locked);
+      if (next.length === 0) return prev;
+      if (!next.some((t) => t.id === activeTabId)) {
+        setActiveTabId(id);
+      }
+      return next;
+    });
   }
 
   function handleBackFromSettings() {
@@ -336,7 +384,13 @@ export function App() {
           onClose={handleTabClose}
           onAdd={handleAddTab}
           onSettings={handleOpenSettings}
-          onSettingsClose={handleCloseSettings}        />
+          onSettingsClose={handleCloseSettings}
+          onToggleLock={handleToggleLock}
+          onRename={handleRename}
+          onColorChange={handleColorChange}
+          onCopyTitle={handleCopyTitle}
+          onCloseOtherTabs={handleCloseOtherTabs}
+        />
       )}
       {view === "welcome" && (
         <div class={styles.contentArea}>

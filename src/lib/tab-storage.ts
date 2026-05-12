@@ -8,6 +8,9 @@ export interface TabMeta {
   shellArgs: string[];
   env: Record<string, string>;
   command: string;
+  customTitle?: string;
+  color?: string;
+  locked?: boolean;
 }
 
 export function saveTabs(tabs: TabMeta[]): void {

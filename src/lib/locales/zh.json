@@ -51,6 +51,16 @@
   "terminal": {
     "exited": "[进程已退出，代码 {{exitCode}}]"
   },
+  "contextMenu": {
+    "openTerminal": "在终端中打开",
+    "lock": "锁定标签",
+    "unlock": "解锁标签",
+    "rename": "重命名",
+    "tabColor": "标签颜色",
+    "copyTitle": "复制标题",
+    "closeTab": "关闭标签",
+    "closeOtherTabs": "关闭其他标签"
+  },
   "approval": {
     "title": "需要审批",
     "approve": "批准",
