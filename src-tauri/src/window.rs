@@ -280,6 +280,7 @@ pub fn toggle_window_visibility(app: &tauri::AppHandle) {
     }
 }
 
+#[allow(dead_code)]
 pub fn show_and_focus_main_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         // Unminimize first — macOS minimized windows report is_visible() == true
