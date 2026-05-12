@@ -1562,6 +1562,7 @@ dependencies = [
  "tauri-plugin-os",
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
+ "uuid",
 ]
 
 [[package]]
