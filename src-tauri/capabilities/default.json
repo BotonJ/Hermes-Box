@@ -14,7 +14,7 @@
       ]
     },
     {
-      "identifier": "fs:allow-write",
+      "identifier": "fs:allow-write-text-file",
       "allow": [
         { "path": "$HOME/**" }
       ]

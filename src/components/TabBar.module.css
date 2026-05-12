@@ -55,6 +55,12 @@
   flex-shrink: 0;
 }
 
+.tabIcon img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
 .tabTitle {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -24,8 +24,10 @@ describe("TabBar", () => {
   it("renders CLI icons", () => {
     render(<TabBar tabs={tabs} activeId="tab-1" onSwitch={vi.fn()} onClose={vi.fn()} onAdd={vi.fn()} {...defaultProps} />);
 
-    expect(screen.getByText("⚡")).not.toBeNull();
-    expect(screen.getByText("🤖")).not.toBeNull();
+    const hermesImg = screen.getByAltText("hermes") as HTMLImageElement;
+    const claudeImg = screen.getByAltText("claude") as HTMLImageElement;
+    expect(hermesImg.src).toContain("/icons/hermes-agent-light.png");
+    expect(claudeImg.src).toContain("/icons/claude-ai-iconpng.png");
   });
 
   it("calls onSwitch when clicking a tab", () => {
