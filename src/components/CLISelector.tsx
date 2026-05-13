@@ -4,7 +4,6 @@ import { getCustomCLIs, customCLIsToMeta } from "../lib/custom-clis";
 import { CLI_ICONS } from "../lib/cli-icons";
 import { t } from "../lib/i18n";
 import { useLocale } from "../lib/use-locale";
-import { launchInTerminal } from "../lib/terminal-launch";
 import styles from "./CLISelector.module.css";
 
 interface CLISelectorProps {
@@ -52,22 +51,6 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
                 <div class={styles.info}>
                   <h2 class={styles.label}>{meta.label}</h2>
                   <p class={styles.description}>{meta.description}</p>
-                </div>
-                <div class={styles.cardFooter}>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    class={styles.openTerminalBtn}
-                    title={t("selector.openTerminal")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      launchInTerminal(result.path!).catch((err) =>
-                        console.error("[terminal-launch]", err),
-                      );
-                    }}
-                  >
-                    {t("selector.openTerminal")}
-                  </span>
                 </div>
               </button>
             );

@@ -18,12 +18,14 @@ interface ContextMenuProps {
   x: number;
   y: number;
   locked: boolean;
+  hasCommand: boolean;
   currentColor?: string;
   onClose: () => void;
   onToggleLock: () => void;
   onRename: () => void;
   onColorChange: (color: string | undefined) => void;
   onCopyTitle: () => void;
+  onOpenExternalTerminal: () => void;
   onCloseTab: () => void;
   onCloseOtherTabs: () => void;
 }
@@ -32,12 +34,14 @@ export function ContextMenu({
   x,
   y,
   locked,
+  hasCommand,
   currentColor,
   onClose,
   onToggleLock,
   onRename,
   onColorChange,
   onCopyTitle,
+  onOpenExternalTerminal,
   onCloseTab,
   onCloseOtherTabs,
 }: ContextMenuProps) {
@@ -92,6 +96,13 @@ export function ContextMenu({
         <button class={styles.item} onClick={() => { onCopyTitle(); onClose(); }}>
           <span class={styles.itemIcon}>📋</span>
           {t("contextMenu.copyTitle")}
+        </button>
+        <button
+          class={`${styles.item} ${!hasCommand ? styles.itemDisabled : ""}`}
+          onClick={() => { if (hasCommand) { onOpenExternalTerminal(); onClose(); } }}
+        >
+          <span class={styles.itemIcon}>🖥️</span>
+          {t("contextMenu.openExternalTerminal")}
         </button>
         <div class={styles.separator} />
         <button

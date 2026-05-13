@@ -20,6 +20,7 @@ import { SoundSelector } from "./settings/SoundSelector";
 import { CustomCLIManager } from "./settings/CustomCLIManager";
 import { ThemeSelector } from "./settings/ThemeSelector";
 import { HermesColors } from "./settings/HermesColors";
+import { applyHermesColors } from "../lib/hermes-colors";
 import { LanguageSelector } from "./settings/LanguageSelector";
 import { TerminalSelector } from "./settings/TerminalSelector";
 import { ApprovalConfig } from "./settings/ApprovalConfig";
@@ -100,6 +101,7 @@ export function Settings({ onBack }: SettingsProps) {
     const newEffective = getEffectiveTheme();
     if (newEffective !== lastEffective) {
       setLastEffective(newEffective);
+      applyHermesColors(newEffective).catch(() => {});
     }
   }
 

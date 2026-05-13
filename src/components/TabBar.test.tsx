@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/preact";
 import { TabBar, type TabInfo } from "./TabBar";
 
 const tabs: TabInfo[] = [
-  { id: "tab-1", cliId: "hermes", title: "Hermes" },
-  { id: "tab-2", cliId: "claude", title: "Claude Code" },
+  { id: "tab-1", cliId: "hermes", title: "Hermes", command: "hermes" },
+  { id: "tab-2", cliId: "claude", title: "Claude Code", command: "claude" },
 ];
 
 const defaultProps = {
@@ -16,6 +16,7 @@ const defaultProps = {
   onColorChange: vi.fn(),
   onCopyTitle: vi.fn(),
   onCloseOtherTabs: vi.fn(),
+  onOpenExternalTerminal: vi.fn(),
 };
 
 describe("TabBar", () => {

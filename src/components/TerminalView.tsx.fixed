@@ -2,18 +2,11 @@ import { useRef, useState, useEffect, useLayoutEffect } from "preact/hooks";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import { spawn } from "../lib/pty";
-
-// zsh PROMPT_SP: \e[1m\e[7m%\e[27m\e[1m\e[0m + spaces + \r \r
-// eslint-disable-next-line no-control-regex -- ANSI escape sequences are required for terminal prompt detection
-const PROMPT_SP_RE = /\x1b\[1m\x1b\[7m%\x1b\[27m\x1b\[1m\x1b\[0m[^\x0d]*\x0d \x0d/;
-
-const hiddenTerminalStyle: Record<string, string> = {
-  visibility: "hidden",
-  pointerEvents: "none",
-};
-
+import { spawn } from "tauri-pty";
+import { validateCommandPath, escapeForPty } from "../lib/validate-command";
+import { scheduleCommand } from "../lib/schedule-command";
 import { useTerminalFit } from "../lib/use-terminal-fit";
+import { getTheme } from "../lib/theme";
 import { getXtermTheme } from "../lib/xterm-themes";
 import { updateTabMetrics, removeTabMetrics, createByteRateTracker } from "../lib/debug-metrics";
 import styles from "./TerminalView.module.css";
@@ -36,15 +29,13 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
   const fitRef = useRef<FitAddon | null>(null);
   const onExitRef = useRef(onExit);
   onExitRef.current = onExit;
+  const cancelCommandRef = useRef<(() => void) | null>(null);
   const activeRef = useRef(isActive);
-  const lastResizeRef = useRef<{ cols: number; rows: number } | null>(null);
   const pendingDataRef = useRef<{ chunks: Uint8Array[]; bytes: number }>({ chunks: [], bytes: 0 });
-  const promptSpStripped = useRef(false);
   const spawnPtyFnRef = useRef<(() => void) | null>(null);
-  const ptyDisposedRef = useRef(false);
   const [fontSize, setFontSize] = useState(14);
 
-  const { scheduleFit } = useTerminalFit({
+  useTerminalFit({
     containerRef,
     fitAddonRef: fitRef,
   });
@@ -67,11 +58,11 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
 
   // Sync fontSize to terminal and re-fit
   useEffect(() => {
-    if (termRef.current) {
+    if (termRef.current && fitRef.current) {
       termRef.current.options.fontSize = fontSize;
-      scheduleFit();
+      fitRef.current.fit();
     }
-  }, [fontSize, scheduleFit]);
+  }, [fontSize]);
 
   // Create terminal, open when container is visible AND tab is active
   useEffect(() => {
@@ -84,7 +75,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       fontSize,
       fontFamily: "Menlo, Monaco, 'Courier New', monospace",
       allowTransparency: true,
-      theme: getXtermTheme((document.documentElement.dataset.theme ?? "dark") as import("../lib/theme").ThemeChoice),
+      theme: getXtermTheme(getTheme()),
     });
 
     const fitAddon = new FitAddon();
@@ -96,19 +87,15 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     function spawnPty() {
       if (ptyRef.current || !term.element) return;
 
-      console.log(`[DEBUG-TV] ${tabId} spawnPty: cols=${term.cols} rows=${term.rows}`);
       const spawnEnv = { TERM: "xterm-256color", ...(env ?? {}) };
       const pty = spawn(shell, shellArgs, {
         cols: term.cols,
         rows: term.rows,
         env: spawnEnv,
-        execCommand: command || undefined,
       });
       ptyRef.current = pty;
-      lastResizeRef.current = { cols: term.cols, rows: term.rows };
 
       let ptyReady = false;
-      ptyDisposedRef.current = false;
       const pendingWrites: string[] = [];
 
       const trackBytes = createByteRateTracker((bps, total) => {
@@ -118,21 +105,9 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       const MAX_PENDING = 512 * 1024;
 
       pty.onData((data: unknown) => {
-        if (ptyDisposedRef.current) return;
-        let bytes = data instanceof Uint8Array
+        const bytes = data instanceof Uint8Array
           ? data
           : new Uint8Array(data as number[]);
-
-        // Strip zsh PROMPT_SP marker from first output chunk
-        if (!promptSpStripped.current) {
-          const text = new TextDecoder().decode(bytes);
-          const stripped = text.replace(PROMPT_SP_RE, "");
-          if (stripped !== text) {
-            promptSpStripped.current = true;
-            bytes = new TextEncoder().encode(stripped);
-          }
-        }
-
         trackBytes(bytes.length);
         if (activeRef.current) {
           term.write(bytes);
@@ -162,23 +137,23 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       });
 
       term.onResize((e: { cols: number; rows: number }) => {
-        if (!ptyReady) return;
-        if (lastResizeRef.current &&
-            e.cols === lastResizeRef.current.cols &&
-            e.rows === lastResizeRef.current.rows) {
-          return;
-        }
-        lastResizeRef.current = { cols: e.cols, rows: e.rows };
-        pty.resize(e.cols, e.rows).catch(() => {});
+        pty.resize(e.cols, e.rows);
       });
 
       pty.onExit(({ exitCode }: { exitCode: number }) => {
-        if (ptyDisposedRef.current) return;
         term.write(`\r\n\r\n[Process exited with code ${exitCode}]\r\n`);
-        pendingWrites.length = 0;
-        pendingDataRef.current = { chunks: [], bytes: 0 };
         onExitRef.current?.(exitCode);
       });
+
+      if (command) {
+        cancelCommandRef.current = scheduleCommand(
+          pty,
+          term,
+          command,
+          validateCommandPath,
+          escapeForPty,
+        );
+      }
     }
 
     spawnPtyFnRef.current = spawnPty;
@@ -187,12 +162,9 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     // Only the active tab should open at mount time; inactive tabs open on activation.
     const observer = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
-      const canOpen = width > 0 && height > 0 && !term.element && activeRef.current;
-      console.log(`[DEBUG-TV] ${tabId} observer: ${width}x${height} hasElement=${!!term.element} active=${activeRef.current} canOpen=${canOpen}`);
-      if (canOpen) {
+      if (width > 0 && height > 0 && !term.element && activeRef.current) {
         term.open(container);
         try { fitAddon.fit(); } catch { /* ignore */ }
-        console.log(`[DEBUG-TV] ${tabId} observer opened: cols=${term.cols} rows=${term.rows}`);
         spawnPty();
       }
     });
@@ -201,15 +173,15 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     return () => {
       observer.disconnect();
       spawnPtyFnRef.current = null;
-      ptyDisposedRef.current = true;
+      cancelCommandRef.current?.();
       if (ptyRef.current) {
         ptyRef.current.kill();
       }
       term.dispose();
       termRef.current = null;
       ptyRef.current = null;
-      lastResizeRef.current = null;
       fitRef.current = null;
+      cancelCommandRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shell, shellArgs, command]);
@@ -245,13 +217,11 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     activeRef.current = isActive;
     const term = termRef.current;
     const container = containerRef.current;
-    console.log(`[DEBUG-TV] ${tabId} isActive=${isActive} hasTerm=${!!term} hasContainer=${!!container} hasElement=${!!term?.element} hasPty=${!!ptyRef.current}`);
     if (!term || !container) return;
 
     if (isActive) {
       // Open terminal if not yet opened (was inactive when ResizeObserver ran)
       if (!term.element) {
-        console.log(`[DEBUG-TV] ${tabId} useLayoutEffect opening terminal`);
         term.open(container);
       }
 
@@ -260,11 +230,9 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
       if (fitAddon) {
         try { fitAddon.fit(); } catch { /* zero-size container */ }
       }
-      console.log(`[DEBUG-TV] ${tabId} useLayoutEffect fit: cols=${term.cols} rows=${term.rows}`);
 
       // Spawn PTY if terminal is open but PTY not yet spawned
       if (!ptyRef.current && term.element) {
-        console.log(`[DEBUG-TV] ${tabId} useLayoutEffect spawning PTY`);
         spawnPtyFnRef.current?.();
       }
 
@@ -282,25 +250,24 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     } else {
       renderPausedRef.current = true;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- tabId is stable per component instance (key={tab.id})
   }, [isActive]);
 
   // Respond to theme changes
   useEffect(() => {
-    if (!termRef.current) return;
+    const term = termRef.current;
+    if (!term) return;
 
     const observer = new MutationObserver(() => {
-      const term = termRef.current;
-      if (!term) return;
       const t = document.documentElement.dataset.theme;
-      if (t) {
-        // data-theme matches ThemeChoice values; getXtermTheme handles unknowns via fallback
-        term.options.theme = getXtermTheme(t as import("../lib/theme").ThemeChoice);
+      if (t === "light" || t === "dark") {
+        term.options.theme = getXtermTheme(t);
       }
     });
 
-    const observerOptions: MutationObserverInit = { attributes: true, attributeFilter: ["data-theme"] };
-    observer.observe(document.documentElement, observerOptions);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
 
     return () => observer.disconnect();
   }, []);
@@ -309,7 +276,7 @@ export function TerminalView({ tabId, tabTitle, shell, shellArgs, env, command, 
     <div
       ref={containerRef}
       class={styles.terminal}
-      style={isActive ? undefined : hiddenTerminalStyle}
+      style={isActive ? undefined : { visibility: "hidden", pointerEvents: "none" }}
     />
   );
 }
