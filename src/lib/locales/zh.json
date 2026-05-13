@@ -5,8 +5,7 @@
     "subtitle": "选择 AI 助手即可开始，无需终端知识。"
   },
   "selector": {
-    "heading": "选择助手",
-    "openTerminal": "打开终端"
+    "heading": "选择助手"
   },
   "settings": {
     "title": "设置",
@@ -35,7 +34,13 @@
     "addCli": "添加",
     "removeCli": "移除",
     "cliLabelPlaceholder": "名称（如 Codex）",
-    "cliCommandPlaceholder": "命令（如 codex）"
+    "cliCommandPlaceholder": "命令（如 codex）",
+    "externalTerminal": "外部终端",
+    "externalTerminalDesc": "选择用于在外部打开 CLI 的终端应用",
+    "defaultTerminal": "系统默认",
+    "applyColors": "应用配色",
+    "resetColors": "重置",
+    "hermesNotDetected": "未检测到 Hermes CLI — 配色按钮将无效果"
   },
   "theme": {
     "dark": "黑曜石",
@@ -52,7 +57,7 @@
     "exited": "[进程已退出，代码 {{exitCode}}]"
   },
   "contextMenu": {
-    "openTerminal": "在终端中打开",
+    "openExternalTerminal": "在外部终端中打开",
     "lock": "锁定标签",
     "unlock": "解锁标签",
     "rename": "重命名",

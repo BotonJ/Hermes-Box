@@ -12,7 +12,6 @@ import {
   getEffectiveTheme,
   type ThemeChoice,
 } from "../lib/theme";
-import { applyHermesColors } from "../lib/hermes-colors";
 import { getLocale, setLocale, t } from "../lib/i18n";
 import { useLocale } from "../lib/use-locale";
 import { isRestoreEnabled, setRestoreEnabled } from "../lib/tab-storage";
@@ -20,7 +19,9 @@ import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
 import { SoundSelector } from "./settings/SoundSelector";
 import { CustomCLIManager } from "./settings/CustomCLIManager";
 import { ThemeSelector } from "./settings/ThemeSelector";
+import { HermesColors } from "./settings/HermesColors";
 import { LanguageSelector } from "./settings/LanguageSelector";
+import { TerminalSelector } from "./settings/TerminalSelector";
 import { ApprovalConfig } from "./settings/ApprovalConfig";
 import styles from "./Settings.module.css";
 
@@ -48,7 +49,6 @@ export function Settings({ onBack }: SettingsProps) {
 
   useEffect(() => {
     isAutostartEnabled().then(setAutostart).catch(() => setAutostart(false));
-    applyHermesColors(getEffectiveTheme()).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -100,7 +100,6 @@ export function Settings({ onBack }: SettingsProps) {
     const newEffective = getEffectiveTheme();
     if (newEffective !== lastEffective) {
       setLastEffective(newEffective);
-      applyHermesColors(newEffective).catch(() => {});
     }
   }
 
@@ -166,6 +165,8 @@ export function Settings({ onBack }: SettingsProps) {
         onChange={handleThemeChange}
       />
 
+      <HermesColors effectiveTheme={lastEffective} />
+
       <div class={styles.section}>
         <div class={styles.sectionLabel}>
           <p class={styles.sectionTitle}>{t("settings.language")}</p>
@@ -177,6 +178,15 @@ export function Settings({ onBack }: SettingsProps) {
         locale={locale}
         onChange={handleLocaleChange}
       />
+
+      <div class={styles.section}>
+        <div class={styles.sectionLabel}>
+          <p class={styles.sectionTitle}>{t("settings.externalTerminal")}</p>
+          <p class={styles.sectionDesc}>{t("settings.externalTerminalDesc")}</p>
+        </div>
+      </div>
+
+      <TerminalSelector />
 
       <div class={styles.section}>
         <div class={styles.sectionLabel}>

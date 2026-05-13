@@ -5,8 +5,7 @@
     "subtitle": "Choose an AI assistant to get started. No terminal knowledge needed."
   },
   "selector": {
-    "heading": "Choose an Assistant",
-    "openTerminal": "Open in Terminal"
+    "heading": "Choose an Assistant"
   },
   "settings": {
     "title": "Settings",
@@ -35,7 +34,13 @@
     "addCli": "Add",
     "removeCli": "Remove",
     "cliLabelPlaceholder": "Name (e.g. Codex)",
-    "cliCommandPlaceholder": "Command (e.g. codex)"
+    "cliCommandPlaceholder": "Command (e.g. codex)",
+    "externalTerminal": "External Terminal",
+    "externalTerminalDesc": "Choose the terminal app for opening CLIs externally",
+    "defaultTerminal": "System Default",
+    "applyColors": "Apply Colors",
+    "resetColors": "Reset",
+    "hermesNotDetected": "Hermes CLI not detected — colors button will have no effect"
   },
   "theme": {
     "dark": "Obsidian",
@@ -52,7 +57,7 @@
     "exited": "[Process exited with code {{exitCode}}]"
   },
   "contextMenu": {
-    "openTerminal": "Open in Terminal",
+    "openExternalTerminal": "Open in External Terminal",
     "lock": "Lock Tab",
     "unlock": "Unlock Tab",
     "rename": "Rename",
