@@ -24,6 +24,10 @@ import {
   type ApprovalRequest,
 } from "./lib/approval-bridge";
 import { saveTabs, loadTabs, isRestoreEnabled } from "./lib/tab-storage";
+import { getExternalTerminal } from "./lib/external-terminal";
+import { launchInTerminal } from "./lib/terminal-launch";
+import { getEffectiveTheme } from "./lib/theme";
+import { applyHermesColors } from "./lib/hermes-colors";
 import { useToast } from "./lib/use-toast";
 import { playApprovalSound } from "./lib/sound";
 import styles from "./App.module.css";
@@ -128,16 +132,19 @@ export function App() {
     if (!isRestoreEnabled()) return;
     const saved = loadTabs();
     if (saved.length === 0) return;
-    const restored: Tab[] = saved.map((meta) => ({
-      id: crypto.randomUUID(),
-      ...meta,
-      customTitle: meta.customTitle,
-      color: meta.color,
-      locked: meta.locked,
-    }));
-    setTabs(restored);
-    setActiveTabId(restored[0].id);
-    setView("terminal");
+    // Sync hermes colors before spawning restored PTYs
+    applyHermesColors(getEffectiveTheme()).catch(() => {}).then(() => {
+      const restored: Tab[] = saved.map((meta) => ({
+        id: crypto.randomUUID(),
+        ...meta,
+        customTitle: meta.customTitle,
+        color: meta.color,
+        locked: meta.locked,
+      }));
+      setTabs(restored);
+      setActiveTabId(restored[0].id);
+      setView("terminal");
+    });
   }, []);
 
   // Persist tabs whenever they change (skip mount to avoid overwriting saved tabs)
@@ -239,8 +246,12 @@ export function App() {
     }
 
     const meta = CLI_REGISTRY.find((m) => m.id === cliId);
+    // Ensure hermes color files are up-to-date before spawning PTY.
+    // Corrects stale matchMedia values from WKWebView startup.
+    const colorSync = applyHermesColors(getEffectiveTheme()).catch(() => {});
     captureShellEnv(runCommand)
-      .then((shellEnv) => {
+      .then(async (shellEnv) => {
+        await colorSync;
         const env = mergeEnv(shellEnv, { TERM: "xterm-256color" });
         addTab(cliId, meta?.label ?? cliId, shell, shellArgs, env, cliPath);
       })
@@ -325,6 +336,13 @@ export function App() {
     });
   }
 
+  function handleOpenExternalTerminal(id: string) {
+    const tab = tabs.find((t) => t.id === id);
+    if (!tab || !tab.command) return;
+    const terminal = getExternalTerminal();
+    launchInTerminal(tab.command, terminal || undefined).catch(() => {});
+  }
+
   function handleBackFromSettings() {
     setView(tabs.length > 0 ? "terminal" : "selector");
   }
@@ -390,6 +408,7 @@ export function App() {
           onColorChange={handleColorChange}
           onCopyTitle={handleCopyTitle}
           onCloseOtherTabs={handleCloseOtherTabs}
+          onOpenExternalTerminal={handleOpenExternalTerminal}
         />
       )}
       {view === "welcome" && (

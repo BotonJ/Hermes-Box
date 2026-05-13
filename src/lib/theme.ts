@@ -17,6 +17,10 @@ export type ThemeChoice = (typeof THEME_PRESETS)[number];
 export type Theme = "dark" | "light";
 
 let systemListener: (() => void) | null = null;
+let lastSystemEffective: Theme | null = null;
+
+/** True when systemListener has fired at least once (guards against stale initial matchMedia). */
+let systemListenerFired = false;
 
 function isThemePreset(v: string): v is ThemeChoice {
   return (THEME_PRESETS as readonly string[]).includes(v);
@@ -55,6 +59,7 @@ export function setTheme(choice: ThemeChoice): void {
   if (systemListener) {
     window.matchMedia("(prefers-color-scheme: dark)").removeEventListener("change", systemListener);
     systemListener = null;
+    lastSystemEffective = null;
   }
 
   try {
@@ -66,7 +71,22 @@ export function setTheme(choice: ThemeChoice): void {
   applyTheme(choice);
 
   if (choice === "system") {
-    systemListener = () => applyTheme("system");
+    lastSystemEffective = getEffectiveTheme();
+    systemListenerFired = false;
+    systemListener = () => {
+      applyTheme("system");
+      const newEffective = getEffectiveTheme();
+      // Always apply on first fire (corrects stale initial matchMedia value),
+      // then skip if unchanged on subsequent fires.
+      if (systemListenerFired && newEffective === lastSystemEffective) {
+        return;
+      }
+      systemListenerFired = true;
+      lastSystemEffective = newEffective;
+      import("./hermes-colors").then(({ applyHermesColors }) =>
+        applyHermesColors(newEffective).catch(() => {}),
+      );
+    };
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", systemListener);
   }
 }

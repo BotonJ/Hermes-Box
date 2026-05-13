@@ -12,6 +12,7 @@ export interface TabInfo {
   customTitle?: string;
   color?: string;
   locked?: boolean;
+  command?: string;
 }
 
 interface TabBarProps {
@@ -28,6 +29,7 @@ interface TabBarProps {
   onColorChange: (id: string, color: string | undefined) => void;
   onCopyTitle: (id: string) => void;
   onCloseOtherTabs: (id: string) => void;
+  onOpenExternalTerminal: (id: string) => void;
 }
 
 interface MenuState {
@@ -50,6 +52,7 @@ export function TabBar({
   onColorChange,
   onCopyTitle,
   onCloseOtherTabs,
+  onOpenExternalTerminal,
 }: TabBarProps) {
   useLocale();
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -168,12 +171,14 @@ export function TabBar({
             x={menu.x}
             y={menu.y}
             locked={tab.locked ?? false}
+            hasCommand={!!tab.command}
             currentColor={tab.color}
             onClose={() => setMenu(null)}
             onToggleLock={() => onToggleLock(tab.id)}
             onRename={() => startRename(tab)}
             onColorChange={(color) => onColorChange(tab.id, color)}
             onCopyTitle={() => onCopyTitle(tab.id)}
+            onOpenExternalTerminal={() => onOpenExternalTerminal(tab.id)}
             onCloseTab={() => onClose(tab.id)}
             onCloseOtherTabs={() => onCloseOtherTabs(tab.id)}
           />

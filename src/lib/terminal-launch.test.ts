@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { launchInTerminal } from "./terminal-launch";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -6,7 +6,12 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 describe("launchInTerminal", () => {
-  it("calls invoke with correct command name and cli argument", async () => {
+  beforeEach(async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+  });
+
+  it("calls invoke with cli only when no terminal", async () => {
     const { invoke } = await import("@tauri-apps/api/core");
     vi.mocked(invoke).mockResolvedValue(undefined);
 
@@ -15,6 +20,19 @@ describe("launchInTerminal", () => {
     expect(invoke).toHaveBeenCalledOnce();
     expect(invoke).toHaveBeenCalledWith("launch_in_terminal", {
       cli: "hermes",
+    });
+  });
+
+  it("calls invoke with terminal when provided", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockResolvedValue(undefined);
+
+    await launchInTerminal("hermes", "iTerm.app");
+
+    expect(invoke).toHaveBeenCalledOnce();
+    expect(invoke).toHaveBeenCalledWith("launch_in_terminal", {
+      cli: "hermes",
+      terminal: "iTerm.app",
     });
   });
 

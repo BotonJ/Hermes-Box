@@ -13,10 +13,11 @@ fn shell_escape(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
 
-/// Launches the given CLI command in the user's default terminal.
-/// Creates a .command script in ~/.hermes/tmp/ and opens it via `open`,
-/// letting macOS route it to whichever terminal the user has set as default.
-pub fn launch_in_default_terminal(command: &str) -> Result<(), String> {
+/// Launches the given CLI command in a terminal app.
+/// Creates a .command script in ~/.hermes/tmp/ and opens it via `open`.
+/// If `terminal` is provided, uses `open -a <terminal>` to target a specific app.
+/// Otherwise falls back to system default via bare `open`.
+pub fn launch_in_default_terminal(command: &str, terminal: Option<&str>) -> Result<(), String> {
     if command.trim().is_empty() {
         return Err("CLI command cannot be empty".to_string());
     }
@@ -45,11 +46,19 @@ pub fn launch_in_default_terminal(command: &str) -> Result<(), String> {
     #[cfg(unix)]
     set_executable(&script_path)?;
 
-    // Open with system default terminal via file association
-    Command::new("open")
-        .arg(script_path.to_str().unwrap())
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    // Open with system default or specific terminal via file association
+    if let Some(app_name) = terminal {
+        Command::new("open")
+            .args(["-a", app_name])
+            .arg(script_path.to_str().unwrap())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    } else {
+        Command::new("open")
+            .arg(script_path.to_str().unwrap())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
 
     Ok(())
 }
@@ -91,9 +100,45 @@ fn cleanup_stale_scripts(dir: &PathBuf) {
     }
 }
 
+#[derive(serde::Serialize)]
+pub struct TerminalApp {
+    pub name: String,
+    pub bundle: String,
+}
+
+/// Detects installed terminal apps by checking /Applications/ for known bundles.
 #[tauri::command]
-pub fn launch_in_terminal(cli: String) -> Result<(), String> {
-    launch_in_default_terminal(&cli)
+pub fn detect_terminals() -> Vec<TerminalApp> {
+    const APPS: &[(&str, &str)] = &[
+        ("Terminal", "Terminal.app"),
+        ("iTerm", "iTerm.app"),
+        ("Ghostty", "Ghostty.app"),
+        ("Alacritty", "Alacritty.app"),
+        ("Kitty", "Kitty.app"),
+        ("WezTerm", "WezTerm.app"),
+        ("Warp", "Warp.app"),
+        ("Hyper", "Hyper.app"),
+    ];
+
+    APPS
+        .iter()
+        .filter_map(|&(name, bundle)| {
+            let path = format!("/Applications/{bundle}");
+            if std::path::Path::new(&path).exists() {
+                Some(TerminalApp {
+                    name: name.to_string(),
+                    bundle: bundle.to_string(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub fn launch_in_terminal(cli: String, terminal: Option<String>) -> Result<(), String> {
+    launch_in_default_terminal(&cli, terminal.as_deref())
 }
 
 #[cfg(test)]
@@ -125,7 +170,7 @@ mod tests {
 
     #[test]
     fn empty_command_rejected() {
-        assert!(launch_in_default_terminal("").is_err());
-        assert!(launch_in_default_terminal("  ").is_err());
+        assert!(launch_in_default_terminal("", None).is_err());
+        assert!(launch_in_default_terminal("  ", None).is_err());
     }
 }

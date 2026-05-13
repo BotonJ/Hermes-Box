@@ -9,6 +9,7 @@
       "identifier": "fs:default",
       "allow": [
         { "path": "$HOME/**" },
+        { "path": "$HOME/.local/bin/**" },
         { "path": "/opt/homebrew/**" },
         { "path": "/usr/local/**" }
       ]
@@ -42,6 +43,7 @@
     "global-shortcut:allow-unregister",
     "autostart:allow-enable",
     "autostart:allow-disable",
-    "autostart:allow-is-enabled"
+    "autostart:allow-is-enabled",
+    "dialog:allow-open"
   ]
 }

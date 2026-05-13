@@ -110,6 +110,7 @@ pub fn run() {
             approval::setup_bridge_dir,
             approval::play_sound,
             terminal::launch_in_terminal,
+            terminal::detect_terminals,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
