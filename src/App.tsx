@@ -132,19 +132,16 @@ export function App() {
     if (!isRestoreEnabled()) return;
     const saved = loadTabs();
     if (saved.length === 0) return;
-    // Sync hermes colors before spawning restored PTYs
-    applyHermesColors(getEffectiveTheme()).catch(() => {}).then(() => {
-      const restored: Tab[] = saved.map((meta) => ({
-        id: crypto.randomUUID(),
-        ...meta,
-        customTitle: meta.customTitle,
-        color: meta.color,
-        locked: meta.locked,
-      }));
-      setTabs(restored);
-      setActiveTabId(restored[0].id);
-      setView("terminal");
-    });
+    const restored: Tab[] = saved.map((meta) => ({
+      id: crypto.randomUUID(),
+      ...meta,
+      customTitle: meta.customTitle,
+      color: meta.color,
+      locked: meta.locked,
+    }));
+    setTabs(restored);
+    setActiveTabId(restored[0].id);
+    setView("terminal");
   }, []);
 
   // Persist tabs whenever they change (skip mount to avoid overwriting saved tabs)

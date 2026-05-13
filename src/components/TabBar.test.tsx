@@ -57,13 +57,13 @@ describe("TabBar", () => {
     const onAdd = vi.fn();
     render(<TabBar tabs={tabs} activeId="tab-1" onSwitch={vi.fn()} onClose={vi.fn()} onAdd={onAdd} {...defaultProps} />);
 
-    fireEvent.click(screen.getByTitle("Open new tab"));
+    fireEvent.click(screen.getByLabelText("Open new tab"));
     expect(onAdd).toHaveBeenCalled();
   });
 
   it("renders with empty tabs", () => {
     render(<TabBar tabs={[]} activeId={null} onSwitch={vi.fn()} onClose={vi.fn()} onAdd={vi.fn()} {...defaultProps} />);
 
-    expect(screen.getByTitle("Open new tab")).not.toBeNull();
+    expect(screen.getByLabelText("Open new tab")).not.toBeNull();
   });
 });

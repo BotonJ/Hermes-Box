@@ -1,8 +1,10 @@
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { Command } from "@tauri-apps/plugin-shell";
+import { platform } from "@tauri-apps/plugin-os";
 import { execLookup } from "./exec-lookup";
 
 const HERMES_CLI_KEY = "hermesbox:hermes-cli-path";
+const NOT_FOUND = "__not_found__";
 const HERMES_WRAPPER_RE = /^(#!(.*)\/venv\/bin\/python)/;
 
 /** Light-theme Hermes colors. */
@@ -37,57 +39,49 @@ function cachePath(path: string): void {
  */
 export async function resolveHermesCliDir(): Promise<string> {
   const cached = getCachedPath();
+  if (cached === NOT_FOUND) return "";
   if (cached) {
-    console.log("[hermes-colors] cached:", cached);
     try {
       await readTextFile(`${cached}/skin_engine.py`);
       return cached;
     } catch {
-      console.log("[hermes-colors] cached path invalid, clearing:", cached);
       cachePath("");
     }
   }
 
-  console.log("[hermes-colors] resolving via which hermes...");
   const hermesPath = await execLookup("hermes");
   if (!hermesPath) {
-    console.log("[hermes-colors] which hermes returned nothing");
+    cachePath(NOT_FOUND);
     return "";
   }
-  console.log("[hermes-colors] which hermes:", hermesPath);
 
-  // hermes might be a symlink — Tauri FS readTextFile blocks symlinks.
-  // Try readTextFile first; if it fails (symlink), fall back to shell.
   let shebangLine = "";
   try {
     const content = await readTextFile(hermesPath);
     shebangLine = content.split("\n")[0];
-    console.log("[hermes-colors] readTextFile ok, shebang:", shebangLine);
   } catch {
-    console.log("[hermes-colors] readTextFile failed (symlink?), trying shell fallback...");
+    // readTextFile fails on symlinks — fall back to shell
+    const shell = platform() === "windows" ? "cmd.exe" : "/bin/zsh";
+    const shellArgs = platform() === "windows"
+      ? ["/c", `for /f "tokens=*" %i in ('where hermes') do @head -1 "%i"`]
+      : ["-l", "-c", 'head -1 "$(which hermes)"'];
     try {
-      const output = await Command.create("/bin/zsh", [
-        "-l",
-        "-c",
-        'head -1 "$(which hermes)"',
-      ]).execute();
+      const output = await Command.create(shell, shellArgs).execute();
       if (output.code === 0 && output.stdout.trim()) {
         shebangLine = output.stdout.trim();
-        console.log("[hermes-colors] shell fallback ok, shebang:", shebangLine);
       }
     } catch {
-      console.log("[hermes-colors] shell fallback also failed");
+      // shell fallback also failed
     }
   }
 
   const match = HERMES_WRAPPER_RE.exec(shebangLine);
   if (!match) {
-    console.log("[hermes-colors] no venv path in shebang:", shebangLine);
+    cachePath(NOT_FOUND);
     return "";
   }
 
   const resolved = `${match[2]}/hermes_cli`;
-  console.log("[hermes-colors] resolved:", resolved);
   cachePath(resolved);
   return resolved;
 }
@@ -113,11 +107,10 @@ async function patchBanner(base: string, bannerColor: string): Promise<void> {
       }
     }
     if (changed) {
-      console.log("[hermes-colors] writing patched banner.py");
       await writeTextFile(path, lines.join("\n"));
     }
-  } catch (err) {
-    console.log("[hermes-colors] patchBanner failed:", err);
+  } catch {
+    // banner.py not found or unreadable — skip
   }
 }
 
@@ -131,7 +124,6 @@ async function patchSkinEngine(base: string, bannerColor: string, promptColor: s
     const currentPrompt = promptMatch?.[1] ?? "";
 
     if (currentBanner === bannerColor && currentPrompt === promptColor) {
-      console.log("[hermes-colors] skin_engine already up-to-date, skipping write");
       return;
     }
 
@@ -148,40 +140,42 @@ async function patchSkinEngine(base: string, bannerColor: string, promptColor: s
         `"prompt": "${promptColor}"`,
       );
     }
-    console.log("[hermes-colors] writing patched skin_engine.py");
     await writeTextFile(path, patched);
-  } catch (err) {
-    console.log("[hermes-colors] patchSkinEngine failed:", err);
+  } catch {
+    // skin_engine.py not found or unreadable — skip
   }
 }
 
-export async function applyHermesColors(theme: "light" | "dark"): Promise<string> {
-  console.log("[hermes-colors] applyHermesColors called, theme:", theme);
-  const base = await resolveHermesCliDir();
-  if (!base) {
-    console.log("[hermes-colors] no hermes path, skipping");
-    return theme === "light"
-      ? "Hermes colors → light mode"
-      : "Hermes colors → dark mode";
-  }
-  const colors = theme === "light" ? LIGHT_COLORS : DARK_COLORS;
-  console.log("[hermes-colors] colors:", JSON.stringify(colors));
-  await patchBanner(base, colors.banner);
-  await patchSkinEngine(base, colors.banner, colors.prompt);
-  const msg = theme === "light"
-    ? "Hermes colors → light mode"
-    : "Hermes colors → dark mode";
-  console.log("[hermes-colors] done:", msg);
-  return msg;
+/** Serializes file writes to prevent concurrent interleaving. */
+let writeChain: Promise<void> = Promise.resolve();
+
+export function applyHermesColors(theme: "light" | "dark"): Promise<string> {
+  const msg = theme === "light" ? "Hermes colors → light mode" : "Hermes colors → dark mode";
+  let resolveResult!: (msg: string) => void;
+  const result = new Promise<string>((r) => { resolveResult = r; });
+  writeChain = writeChain.then(async () => {
+    const base = await resolveHermesCliDir();
+    if (base) {
+      const colors = theme === "light" ? LIGHT_COLORS : DARK_COLORS;
+      await patchBanner(base, colors.banner);
+      await patchSkinEngine(base, colors.banner, colors.prompt);
+    }
+    resolveResult(msg);
+  });
+  return result;
 }
 
-export async function resetHermesColors(): Promise<string> {
-  const base = await resolveHermesCliDir();
-  if (!base) {
-    console.log("[hermes-colors] no hermes path, skipping");
-    return "Hermes colors → reset";
-  }
-  await patchBanner(base, RESET_COLORS.banner);
-  await patchSkinEngine(base, RESET_COLORS.banner, RESET_COLORS.prompt);
-  return "Hermes colors → reset";
+export function resetHermesColors(): Promise<string> {
+  const msg = "Hermes colors → reset";
+  let resolveResult!: (msg: string) => void;
+  const result = new Promise<string>((r) => { resolveResult = r; });
+  writeChain = writeChain.then(async () => {
+    const base = await resolveHermesCliDir();
+    if (base) {
+      await patchBanner(base, RESET_COLORS.banner);
+      await patchSkinEngine(base, RESET_COLORS.banner, RESET_COLORS.prompt);
+    }
+    resolveResult(msg);
+  });
+  return result;
 }

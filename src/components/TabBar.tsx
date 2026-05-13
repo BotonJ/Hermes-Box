@@ -112,8 +112,9 @@ export function TabBar({
               style={tab.color ? { borderTopColor: tab.color, borderTopWidth: "2px", borderTopStyle: "solid" } : undefined}
               onClick={handleSwitch}
               onContextMenu={(e) => handleContextMenu(e, tab.id)}
+              aria-label={displayName}
             >
-              {tab.locked && <span class={styles.lockIcon}>🔒</span>}
+              {tab.locked && <span class={styles.lockIcon} aria-hidden="true">🔒</span>}
               <span class={styles.tabIcon}>
                 {tab.cliId in CLI_ICONS
                   ? <img src={CLI_ICONS[tab.cliId]} alt={tab.cliId} />
@@ -136,21 +137,22 @@ export function TabBar({
                 <span class={styles.tabTitle}>{displayName}</span>
               )}
               {!tab.locked && (
-                <span class={styles.closeBtn} onClick={handleClose}>
+                <span class={styles.closeBtn} onClick={handleClose} aria-label={`Close ${displayName}`}>
                   &times;
                 </span>
               )}
             </button>
           );
         })}
-        <button class={styles.addTab} onClick={onAdd} title="Open new tab">
+        <button class={styles.addTab} onClick={onAdd} aria-label="Open new tab">
           +
         </button>
         <button
           class={`${styles.tab} ${styles.settingsTab} ${settingsActive ? styles.active : ""}`}
           onClick={onSettings}
+          aria-label={t("settings.title")}
         >
-          <span class={styles.tabIcon}>⚙️</span>
+          <span class={styles.tabIcon} aria-hidden="true">⚙️</span>
           <span class={styles.tabTitle}>{t("settings.title")}</span>
           <span
             class={styles.closeBtn}
@@ -158,6 +160,7 @@ export function TabBar({
               e.stopPropagation();
               onSettingsClose();
             }}
+            aria-label={`Close ${t("settings.title")}`}
           >
             &times;
           </span>

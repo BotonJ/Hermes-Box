@@ -24,7 +24,7 @@ export interface XtermTheme {
   brightWhite: string;
 }
 
-// Obsidian (Gruvbox Dark)
+// Obsidian (alias for Gruvbox Dark)
 const OBSIDIAN: XtermTheme = {
   background: "#282828",
   foreground: "#ebdbb2",
@@ -48,6 +48,9 @@ const OBSIDIAN: XtermTheme = {
   brightCyan: "#8ec07c",
   brightWhite: "#ebdbb2",
 };
+
+// Gruvbox Dark (same as Obsidian — single canonical definition)
+const GRUVBOX_DARK = OBSIDIAN;
 
 // macOS Grass (green-themed light palette)
 const GRASS: XtermTheme = {
@@ -149,31 +152,6 @@ const LAVENDER: XtermTheme = {
   brightWhite: "#f3e5f5",
 };
 
-// Gruvbox Dark
-const GRUVBOX_DARK: XtermTheme = {
-  background: "#282828",
-  foreground: "#ebdbb2",
-  cursor: "#ebdbb2",
-  cursorAccent: "#282828",
-  selectionBackground: "#665c54",
-  black: "#282828",
-  red: "#cc241d",
-  green: "#98971a",
-  yellow: "#d79921",
-  blue: "#458588",
-  magenta: "#b16286",
-  cyan: "#689d6a",
-  white: "#a89984",
-  brightBlack: "#928374",
-  brightRed: "#fb4934",
-  brightGreen: "#b8bb26",
-  brightYellow: "#fabd2f",
-  brightBlue: "#83a598",
-  brightMagenta: "#d3869b",
-  brightCyan: "#8ec07c",
-  brightWhite: "#ebdbb2",
-};
-
 // Atom One Light
 const ATOM_ONE_LIGHT: XtermTheme = {
   background: "#fafafa",
@@ -236,7 +214,10 @@ const THEMES: Record<ThemeChoice, XtermTheme> = {
   system: OBSIDIAN, // resolved at runtime by theme.ts
 };
 
-/** Returns the xterm theme for a given theme choice. */
+/** Returns the xterm theme for a given theme choice. Resolves "system" at runtime. */
 export function getXtermTheme(choice: ThemeChoice): XtermTheme {
+  if (choice === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? GRUVBOX_DARK : ATOM_ONE_LIGHT;
+  }
   return THEMES[choice] ?? OBSIDIAN;
 }

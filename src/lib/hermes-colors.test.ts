@@ -13,6 +13,10 @@ vi.mock("./exec-lookup", () => ({
   execLookup: vi.fn(),
 }));
 
+vi.mock("@tauri-apps/plugin-os", () => ({
+  platform: vi.fn().mockReturnValue("macos"),
+}));
+
 const mockShellExecute = vi.fn();
 vi.mock("@tauri-apps/plugin-shell", () => ({
   Command: {
