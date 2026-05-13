@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { getXtermTheme } from "./xterm-themes";
+
+// matchMedia required by getXtermTheme("system") runtime resolution
+vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+  matches: query === "(prefers-color-scheme: dark)",
+  media: query,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+})));
 
 describe("xterm-themes", () => {
   describe("DARK (Gruvbox Dark)", () => {

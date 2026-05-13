@@ -16,6 +16,9 @@ export const THEME_PRESETS = [
 export type ThemeChoice = (typeof THEME_PRESETS)[number];
 export type Theme = "dark" | "light";
 
+/** Themes that resolve as "light" for xterm and Hermes color sync. */
+export const LIGHT_THEMES = new Set(["grass", "atom-one-light", "flexoki-light"]);
+
 let systemListener: (() => void) | null = null;
 let lastSystemEffective: Theme | null = null;
 
@@ -94,8 +97,7 @@ export function setTheme(choice: ThemeChoice): void {
 /** Returns the effective theme (dark or light) for xterm and other consumers. */
 export function getEffectiveTheme(): Theme {
   const dataTheme = resolveDataTheme(getTheme());
-  // grass and atom-one-light are light themes; everything else is dark
-  return dataTheme === "grass" || dataTheme === "atom-one-light" || dataTheme === "flexoki-light" ? "light" : "dark";
+  return LIGHT_THEMES.has(dataTheme) ? "light" : "dark";
 }
 
 /** Initializes the theme system on app startup. */
