@@ -35,6 +35,7 @@
     "removeCli": "Remove",
     "cliLabelPlaceholder": "Name (e.g. Codex)",
     "cliCommandPlaceholder": "Command (e.g. codex)",
+    "cliArgsPlaceholder": "Args (optional, e.g. tui)",
     "externalTerminal": "External Terminal",
     "externalTerminalDesc": "Choose the terminal app for opening CLIs externally",
     "defaultTerminal": "System Default",

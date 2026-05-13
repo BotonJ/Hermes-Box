@@ -35,6 +35,7 @@
     "removeCli": "移除",
     "cliLabelPlaceholder": "名称（如 Codex）",
     "cliCommandPlaceholder": "命令（如 codex）",
+    "cliArgsPlaceholder": "参数（可选，如 tui）",
     "externalTerminal": "外部终端",
     "externalTerminalDesc": "选择用于在外部打开 CLI 的终端应用",
     "defaultTerminal": "系统默认",

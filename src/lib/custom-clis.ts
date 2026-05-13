@@ -6,6 +6,7 @@ export interface CustomCLI {
   id: string;
   label: string;
   command: string;
+  args?: string;
 }
 
 export function getCustomCLIs(): CustomCLI[] {
@@ -27,9 +28,10 @@ export function getCustomCLIs(): CustomCLI[] {
   }
 }
 
-export function addCustomCLI(label: string, command: string): CustomCLI {
+export function addCustomCLI(label: string, command: string, args?: string): CustomCLI {
   const id = `custom-${crypto.randomUUID().slice(0, 8)}`;
-  const entry: CustomCLI = { id, label, command };
+  const normalizedArgs = args?.trim() || undefined;
+  const entry: CustomCLI = { id, label, command, args: normalizedArgs };
   const list = getCustomCLIs();
   list.push(entry);
   save(list);
@@ -45,8 +47,9 @@ export function customCLIsToMeta(customs: CustomCLI[]): CLIMeta[] {
   return customs.map((c) => ({
     id: c.id,
     label: c.label,
-    description: `Custom: ${c.command}`,
+    description: `Custom: ${c.command}${c.args ? ` ${c.args}` : ""}`,
     commands: [c.command],
+    execArgs: c.args,
     fallbackPaths: { darwin: [], windows: [] },
   }));
 }

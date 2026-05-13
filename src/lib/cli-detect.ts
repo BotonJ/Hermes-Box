@@ -3,6 +3,8 @@ export interface CLIMeta {
   label: string;
   description: string;
   commands: string[];
+  /** Extra args appended when spawning in PTY (e.g. "tui" for openclaw). */
+  execArgs?: string;
   fallbackPaths: Record<string, string[]>;
 }
 
@@ -63,9 +65,20 @@ export const CLI_REGISTRY: CLIMeta[] = [
     label: "OpenClaw",
     description: "AI coding assistant",
     commands: ["openclaw"],
+    execArgs: "tui",
     fallbackPaths: {
       darwin: ["/usr/local/bin/openclaw", "/opt/homebrew/bin/openclaw", "$HOME/.local/bin/openclaw"],
       windows: ["openclaw.exe"],
+    },
+  },
+  {
+    id: "deepseek",
+    label: "DeepSeek",
+    description: "DeepSeek AI TUI",
+    commands: ["deepseek", "deepseek-tui"],
+    fallbackPaths: {
+      darwin: ["/usr/local/bin/deepseek", "/opt/homebrew/bin/deepseek", "$HOME/.local/bin/deepseek"],
+      windows: ["deepseek.exe"],
     },
   },
 ];

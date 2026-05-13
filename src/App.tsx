@@ -243,6 +243,7 @@ export function App() {
     }
 
     const meta = CLI_REGISTRY.find((m) => m.id === cliId);
+    const execCommand = meta?.execArgs ? `${cliPath} ${meta.execArgs}` : cliPath;
     // Ensure hermes color files are up-to-date before spawning PTY.
     // Corrects stale matchMedia values from WKWebView startup.
     const colorSync = applyHermesColors(getEffectiveTheme()).catch(() => {});
@@ -250,10 +251,10 @@ export function App() {
       .then(async (shellEnv) => {
         await colorSync;
         const env = mergeEnv(shellEnv, { TERM: "xterm-256color" });
-        addTab(cliId, meta?.label ?? cliId, shell, shellArgs, env, cliPath);
+        addTab(cliId, meta?.label ?? cliId, shell, shellArgs, env, execCommand);
       })
       .catch(() => {
-        addTab(cliId, meta?.label ?? cliId, shell, shellArgs, { TERM: "xterm-256color" }, cliPath);
+        addTab(cliId, meta?.label ?? cliId, shell, shellArgs, { TERM: "xterm-256color" }, execCommand);
       });
   }
 
