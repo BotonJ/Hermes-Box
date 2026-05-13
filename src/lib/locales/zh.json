@@ -38,8 +38,8 @@
     "externalTerminal": "外部终端",
     "externalTerminalDesc": "选择用于在外部打开 CLI 的终端应用",
     "defaultTerminal": "系统默认",
-    "applyColors": "应用配色",
-    "resetColors": "重置",
+    "applyColors": "为Hermes文字适配浅色主题",
+    "resetColors": "重置Hermes文字颜色",
     "hermesNotDetected": "未检测到 Hermes CLI — 配色按钮将无效果"
   },
   "theme": {

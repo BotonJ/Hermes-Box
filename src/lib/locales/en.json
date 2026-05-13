@@ -38,8 +38,8 @@
     "externalTerminal": "External Terminal",
     "externalTerminalDesc": "Choose the terminal app for opening CLIs externally",
     "defaultTerminal": "System Default",
-    "applyColors": "Apply Colors",
-    "resetColors": "Reset",
+    "applyColors": "Adapt for Light Theme",
+    "resetColors": "Reset Hermes Colors",
     "hermesNotDetected": "Hermes CLI not detected — colors button will have no effect"
   },
   "theme": {

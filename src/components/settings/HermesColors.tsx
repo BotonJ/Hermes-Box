@@ -1,8 +1,8 @@
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import {
   applyHermesColors,
   resetHermesColors,
-  getHermesCliPathStatus,
+  resolveHermesCliDir,
 } from "../../lib/hermes-colors";
 import { t } from "../../lib/i18n";
 import { useLocale } from "../../lib/use-locale";
@@ -15,7 +15,11 @@ interface HermesColorsProps {
 export function HermesColors({ effectiveTheme }: HermesColorsProps) {
   useLocale();
   const [message, setMessage] = useState<string | null>(null);
-  const status = getHermesCliPathStatus();
+  const [cliPath, setCliPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    resolveHermesCliDir().then(setCliPath);
+  }, []);
 
   async function handleApply() {
     setMessage(null);
@@ -39,7 +43,7 @@ export function HermesColors({ effectiveTheme }: HermesColorsProps) {
           {t("settings.resetColors")}
         </button>
       </div>
-      {status === "not-found" && (
+      {cliPath === "" && (
         <p class={styles.sectionDesc}>{t("settings.hermesNotDetected")}</p>
       )}
       {message && (
