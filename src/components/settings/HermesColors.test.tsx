@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/preact";
 vi.mock("../../lib/hermes-colors", () => ({
   applyHermesColors: vi.fn().mockResolvedValue("Hermes colors → dark mode"),
   resetHermesColors: vi.fn().mockResolvedValue("Hermes colors → reset"),
-  getHermesCliPathStatus: vi.fn(),
+  resolveHermesCliDir: vi.fn().mockResolvedValue("/fake/hermes_cli"),
 }));
 
 vi.mock("../../lib/i18n", () => ({
@@ -19,7 +19,7 @@ import { HermesColors } from "./HermesColors";
 import {
   applyHermesColors,
   resetHermesColors,
-  getHermesCliPathStatus,
+  resolveHermesCliDir,
 } from "../../lib/hermes-colors";
 
 describe("HermesColors", () => {
@@ -27,51 +27,65 @@ describe("HermesColors", () => {
     vi.clearAllMocks();
   });
 
-  it("renders Apply and Reset buttons", () => {
-    vi.mocked(getHermesCliPathStatus).mockReturnValue("found");
+  it("renders Apply and Reset buttons", async () => {
     render(<HermesColors effectiveTheme="dark" />);
 
-    expect(screen.getByText("settings.applyColors")).toBeDefined();
-    expect(screen.getByText("settings.resetColors")).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText("settings.applyColors")).toBeDefined();
+      expect(screen.getByText("settings.resetColors")).toBeDefined();
+    });
   });
 
-  it("shows not-found status when Hermes CLI is not detected", () => {
-    vi.mocked(getHermesCliPathStatus).mockReturnValue("not-found");
+  it("shows not-found status when Hermes CLI is not detected", async () => {
+    vi.mocked(resolveHermesCliDir).mockResolvedValue("");
+
     render(<HermesColors effectiveTheme="dark" />);
 
-    expect(screen.getByText("settings.hermesNotDetected")).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText("settings.hermesNotDetected")).toBeDefined();
+    });
   });
 
-  it("does not show not-found status when Hermes CLI is found", () => {
-    vi.mocked(getHermesCliPathStatus).mockReturnValue("found");
+  it("does not show not-found status when Hermes CLI is found", async () => {
+    vi.mocked(resolveHermesCliDir).mockResolvedValue("/fake/hermes_cli");
+
     render(<HermesColors effectiveTheme="dark" />);
 
-    expect(screen.queryByText("settings.hermesNotDetected")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("settings.hermesNotDetected")).toBeNull();
+    });
   });
 
   it("calls applyHermesColors with effective theme on Apply click", async () => {
-    vi.mocked(getHermesCliPathStatus).mockReturnValue("found");
     render(<HermesColors effectiveTheme="light" />);
 
-    const applyBtn = screen.getByText("settings.applyColors");
-    await fireEvent.click(applyBtn);
+    await waitFor(() => {
+      expect(screen.getByText("settings.applyColors")).toBeDefined();
+    });
+
+    await fireEvent.click(screen.getByText("settings.applyColors"));
 
     expect(applyHermesColors).toHaveBeenCalledWith("light");
   });
 
   it("calls resetHermesColors on Reset click", async () => {
-    vi.mocked(getHermesCliPathStatus).mockReturnValue("found");
     render(<HermesColors effectiveTheme="dark" />);
 
-    const resetBtn = screen.getByText("settings.resetColors");
-    await fireEvent.click(resetBtn);
+    await waitFor(() => {
+      expect(screen.getByText("settings.resetColors")).toBeDefined();
+    });
+
+    await fireEvent.click(screen.getByText("settings.resetColors"));
 
     expect(resetHermesColors).toHaveBeenCalled();
   });
 
   it("shows success message after Apply", async () => {
-    vi.mocked(getHermesCliPathStatus).mockReturnValue("found");
     render(<HermesColors effectiveTheme="dark" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("settings.applyColors")).toBeDefined();
+    });
 
     await fireEvent.click(screen.getByText("settings.applyColors"));
 
@@ -81,8 +95,11 @@ describe("HermesColors", () => {
   });
 
   it("shows success message after Reset", async () => {
-    vi.mocked(getHermesCliPathStatus).mockReturnValue("found");
     render(<HermesColors effectiveTheme="dark" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("settings.resetColors")).toBeDefined();
+    });
 
     await fireEvent.click(screen.getByText("settings.resetColors"));
 
