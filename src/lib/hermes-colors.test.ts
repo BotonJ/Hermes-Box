@@ -12,7 +12,7 @@ vi.stubGlobal("localStorage", {
   clear: vi.fn(),
 });
 
-import { applyHermesColors } from "./hermes-colors";
+import { applyHermesColors, resetHermesColors, getHermesCliPathStatus } from "./hermes-colors";
 
 describe("hermes-colors", () => {
   beforeEach(() => {
@@ -93,5 +93,66 @@ describe("hermes-colors", () => {
 
     expect(result).toBe("Hermes colors → dark mode");
     expect(readTextFile).not.toHaveBeenCalled();
+  });
+
+  // --- resetHermesColors ---
+
+  it("resetHermesColors patches skin_engine with original #FFF8DC values", async () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("/fake/hermes_cli");
+    const { readTextFile, writeTextFile } = await import("@tauri-apps/plugin-fs");
+
+    vi.mocked(readTextFile)
+      .mockResolvedValueOnce('banner_color = "#C5A882"\n')
+      .mockResolvedValueOnce('"banner_text": "#000000"\n"prompt": "#C5A882"\n');
+
+    const result = await resetHermesColors();
+
+    expect(result).toBe("Hermes colors → reset");
+    // banner.py patched back to #FFF8DC
+    expect(writeTextFile).toHaveBeenCalledWith(
+      "/fake/hermes_cli/banner.py",
+      expect.stringContaining("#FFF8DC"),
+    );
+    // skin_engine.py patched back to #FFF8DC for both keys
+    expect(writeTextFile).toHaveBeenCalledWith(
+      "/fake/hermes_cli/skin_engine.py",
+      expect.stringContaining('"banner_text": "#FFF8DC"'),
+    );
+    expect(writeTextFile).toHaveBeenCalledWith(
+      "/fake/hermes_cli/skin_engine.py",
+      expect.stringContaining('"prompt": "#FFF8DC"'),
+    );
+  });
+
+  it("resetHermesColors skips when no Hermes CLI path", async () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
+    const { readTextFile } = await import("@tauri-apps/plugin-fs");
+
+    const result = await resetHermesColors();
+
+    expect(result).toBe("Hermes colors → reset");
+    expect(readTextFile).not.toHaveBeenCalled();
+  });
+
+  // --- getHermesCliPathStatus ---
+
+  it("getHermesCliPathStatus returns 'found' when path is set", () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("/fake/hermes_cli");
+
+    expect(getHermesCliPathStatus()).toBe("found");
+  });
+
+  it("getHermesCliPathStatus returns 'not-found' when path is empty", () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+    expect(getHermesCliPathStatus()).toBe("not-found");
+  });
+
+  it("getHermesCliPathStatus returns 'not-found' on localStorage error", () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new Error("denied");
+    });
+
+    expect(getHermesCliPathStatus()).toBe("not-found");
   });
 });

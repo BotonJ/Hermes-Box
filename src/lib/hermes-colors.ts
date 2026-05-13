@@ -16,6 +16,9 @@ const LIGHT_COLORS = { banner: "#C5A882", prompt: "#000000" };
 /** Dark-theme Hermes colors (deeper, readable). */
 const DARK_COLORS = { banner: "#C5A882", prompt: "#FFF8DC" };
 
+/** Hermes original/reset colors. */
+const RESET_COLORS = { banner: "#FFF8DC", prompt: "#FFF8DC" };
+
 async function patchBanner(bannerColor: string): Promise<void> {
   const base = getHermesCliPath();
   if (!base) return;
@@ -69,4 +72,17 @@ export async function applyHermesColors(
   return theme === "light"
     ? "Hermes colors → light mode"
     : "Hermes colors → dark mode";
+}
+
+/** Resets Hermes CLI colors to original defaults (#FFF8DC). */
+export async function resetHermesColors(): Promise<string> {
+  await patchBanner(RESET_COLORS.banner);
+  await patchSkinEngine(RESET_COLORS.banner, RESET_COLORS.prompt);
+  return "Hermes colors → reset";
+}
+
+/** Returns whether the Hermes CLI path has been resolved. */
+export function getHermesCliPathStatus(): "found" | "not-found" {
+  const path = getHermesCliPath();
+  return path ? "found" : "not-found";
 }
