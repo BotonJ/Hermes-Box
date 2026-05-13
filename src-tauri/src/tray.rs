@@ -1,4 +1,5 @@
 use tauri::{
+    image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager,
@@ -22,12 +23,16 @@ pub fn create_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     let menu = Menu::with_items(app, &[&show_hide, &settings, &separator, &quit])?;
 
+    let icon = app
+        .default_window_icon()
+        .cloned()
+        .unwrap_or_else(|| {
+            let icon_bytes = include_bytes!("../icons/tray-icon.png");
+            Image::from_bytes(icon_bytes).expect("failed to load tray icon")
+        });
+
     TrayIconBuilder::new()
-        .icon(
-            app.default_window_icon()
-                .cloned()
-                .ok_or("no default window icon configured — check tauri.conf.json icons")?,
-        )
+        .icon(icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .tooltip("HermesBox")
