@@ -41,6 +41,23 @@ const claudeWithHomeMeta: CLIMeta = {
   },
 };
 
+const openclawMeta: CLIMeta = {
+  id: "openclaw",
+  label: "OpenClaw",
+  description: "AI coding assistant",
+  commands: ["openclaw"],
+  execArgs: "tui",
+  fallbackPaths: { darwin: [], windows: [] },
+};
+
+const deepseekMeta: CLIMeta = {
+  id: "deepseek",
+  label: "DeepSeek",
+  description: "DeepSeek AI TUI",
+  commands: ["deepseek", "deepseek-tui"],
+  fallbackPaths: { darwin: [], windows: [] },
+};
+
 describe("detectCLI", () => {
   it("finds CLI via execLookup (which)", async () => {
     const result = await detectCLI(
@@ -122,6 +139,30 @@ describe("detectCLI", () => {
     );
 
     expect(result.found).toBe(false);
+  });
+
+  it("finds openclaw with execArgs but detects via base command", async () => {
+    const result = await detectCLI(
+      openclawMeta,
+      "darwin",
+      async (cmd) => (cmd === "openclaw" ? "/opt/homebrew/bin/openclaw" : null),
+      async () => false,
+    );
+
+    expect(result.found).toBe(true);
+    expect(result.path).toBe("/opt/homebrew/bin/openclaw");
+  });
+
+  it("finds deepseek via secondary command name", async () => {
+    const lookup = async (cmd: string) =>
+      cmd === "deepseek" ? null
+        : cmd === "deepseek-tui" ? "/usr/local/bin/deepseek-tui"
+        : null;
+
+    const result = await detectCLI(deepseekMeta, "darwin", lookup, async () => false);
+
+    expect(result.found).toBe(true);
+    expect(result.path).toBe("/usr/local/bin/deepseek-tui");
   });
 });
 

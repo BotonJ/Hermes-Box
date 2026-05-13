@@ -22,6 +22,17 @@ describe("custom-clis", () => {
     expect(getCustomCLIs()).toHaveLength(1);
   });
 
+  it("adds a custom CLI with args", () => {
+    const entry = addCustomCLI("OpenClaw", "openclaw", "tui");
+    expect(entry.command).toBe("openclaw");
+    expect(entry.args).toBe("tui");
+  });
+
+  it("adds a custom CLI without args (undefined)", () => {
+    const entry = addCustomCLI("Shell", "zsh", "");
+    expect(entry.args).toBeUndefined();
+  });
+
   it("removes a custom CLI", () => {
     const entry = addCustomCLI("Tool", "tool");
     removeCustomCLI(entry.id);
@@ -45,6 +56,20 @@ describe("custom-clis", () => {
     expect(metas[0].label).toBe("MyTool");
     expect(metas[0].commands).toEqual(["mytool"]);
     expect(metas[0].id).toContain("custom-");
+  });
+
+  it("converts custom CLI with args to CLIMeta with execArgs", () => {
+    addCustomCLI("OpenClaw", "openclaw", "tui");
+    const metas = customCLIsToMeta(getCustomCLIs());
+    expect(metas[0].execArgs).toBe("tui");
+    expect(metas[0].description).toBe("Custom: openclaw tui");
+  });
+
+  it("custom CLI without args has no execArgs", () => {
+    addCustomCLI("MyTool", "mytool");
+    const metas = customCLIsToMeta(getCustomCLIs());
+    expect(metas[0].execArgs).toBeUndefined();
+    expect(metas[0].description).toBe("Custom: mytool");
   });
 
   it("persists to localStorage", () => {
