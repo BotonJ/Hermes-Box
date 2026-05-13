@@ -34,11 +34,11 @@ describe("execLookup", () => {
         execute: () => Promise.resolve({ code: 1, stdout: "", stderr: "not found" }),
       } as never)
       .mockReturnValueOnce({
-        execute: () => Promise.resolve({ code: 0, stdout: "/Users/dor/.local/bin/hermes\n", stderr: "" }),
+        execute: () => Promise.resolve({ code: 0, stdout: "/home/testuser/.local/bin/hermes\n", stderr: "" }),
       } as never);
 
     const result = await execLookup("hermes");
-    expect(result).toBe("/Users/dor/.local/bin/hermes");
+    expect(result).toBe("/home/testuser/.local/bin/hermes");
     expect(Command.create).toHaveBeenCalledTimes(2);
   });
 

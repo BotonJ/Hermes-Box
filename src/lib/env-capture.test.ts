@@ -8,11 +8,11 @@ import {
 
 describe("parseEnvOutput", () => {
   it("parses standard env output", () => {
-    const output = "HOME=/Users/dor\nPATH=/usr/bin:/bin\nSHELL=/bin/zsh\n";
+    const output = "HOME=/home/testuser\nPATH=/usr/bin:/bin\nSHELL=/bin/zsh\n";
     const env = parseEnvOutput(output);
 
     expect(env).toEqual({
-      HOME: "/Users/dor",
+      HOME: "/home/testuser",
       PATH: "/usr/bin:/bin",
       SHELL: "/bin/zsh",
     });
@@ -26,11 +26,11 @@ describe("parseEnvOutput", () => {
   });
 
   it("skips empty lines and lines without =", () => {
-    const output = "\nHOME=/Users/dor\n\ninvalidline\nPATH=/usr/bin\n";
+    const output = "\nHOME=/home/testuser\n\ninvalidline\nPATH=/usr/bin\n";
     const env = parseEnvOutput(output);
 
     expect(env).toEqual({
-      HOME: "/Users/dor",
+      HOME: "/home/testuser",
       PATH: "/usr/bin",
     });
   });
@@ -42,14 +42,14 @@ describe("parseEnvOutput", () => {
 
 describe("mergeEnv", () => {
   it("overrides base with overrides", () => {
-    const base = { PATH: "/usr/bin", HOME: "/Users/dor" };
+    const base = { PATH: "/usr/bin", HOME: "/home/testuser" };
     const overrides = { PATH: "/custom/bin", TERM: "xterm-256color" };
 
     const result = mergeEnv(base, overrides);
 
     expect(result).toEqual({
       PATH: "/custom/bin",
-      HOME: "/Users/dor",
+      HOME: "/home/testuser",
       TERM: "xterm-256color",
     });
   });

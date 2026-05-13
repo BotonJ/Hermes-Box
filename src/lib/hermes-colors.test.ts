@@ -45,17 +45,17 @@ describe("hermes-colors", () => {
     (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
     const { readTextFile } = await import("@tauri-apps/plugin-fs");
 
-    vi.mocked(execLookup).mockResolvedValueOnce("/Users/dor/.local/bin/hermes");
+    vi.mocked(execLookup).mockResolvedValueOnce("/home/testuser/.local/bin/hermes");
     vi.mocked(readTextFile).mockResolvedValueOnce(
-      "#!/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/venv/bin/python\n# wrapper\n",
+      "#!/home/testuser/hermes-agent-2026.4.23/venv/bin/python\n# wrapper\n",
     );
 
     const path = await resolveHermesCliDir();
 
-    expect(path).toBe("/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/hermes_cli");
+    expect(path).toBe("/home/testuser/hermes-agent-2026.4.23/hermes_cli");
     expect(localStorage.setItem).toHaveBeenCalledWith(
       "hermesbox:hermes-cli-path",
-      "/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/hermes_cli",
+      "/home/testuser/hermes-agent-2026.4.23/hermes_cli",
     );
   });
 
@@ -82,7 +82,7 @@ describe("hermes-colors", () => {
     (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
     const { readTextFile } = await import("@tauri-apps/plugin-fs");
 
-    vi.mocked(execLookup).mockResolvedValueOnce("/Users/dor/.local/bin/hermes");
+    vi.mocked(execLookup).mockResolvedValueOnce("/home/testuser/.local/bin/hermes");
     vi.mocked(readTextFile).mockResolvedValueOnce("#!/usr/bin/python3\n");
 
     const path = await resolveHermesCliDir();
@@ -94,7 +94,7 @@ describe("hermes-colors", () => {
     (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
     const { readTextFile } = await import("@tauri-apps/plugin-fs");
 
-    vi.mocked(execLookup).mockResolvedValueOnce("/Users/dor/.local/bin/hermes");
+    vi.mocked(execLookup).mockResolvedValueOnce("/home/testuser/.local/bin/hermes");
     vi.mocked(readTextFile).mockRejectedValueOnce(new Error("not found"));
     mockShellExecute.mockRejectedValueOnce(new Error("shell failed"));
 
@@ -107,19 +107,19 @@ describe("hermes-colors", () => {
     (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
     const { readTextFile } = await import("@tauri-apps/plugin-fs");
 
-    vi.mocked(execLookup).mockResolvedValueOnce("/Users/dor/.local/bin/hermes");
+    vi.mocked(execLookup).mockResolvedValueOnce("/home/testuser/.local/bin/hermes");
     vi.mocked(readTextFile).mockRejectedValueOnce(new Error("forbidden path"));
     mockShellExecute.mockResolvedValueOnce({
       code: 0,
       stdout:
-        "#!/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/venv/bin/python\n",
+        "#!/home/testuser/hermes-agent-2026.4.23/venv/bin/python\n",
       stderr: "",
     });
 
     const path = await resolveHermesCliDir();
 
     expect(path).toBe(
-      "/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/hermes_cli",
+      "/home/testuser/hermes-agent-2026.4.23/hermes_cli",
     );
   });
 

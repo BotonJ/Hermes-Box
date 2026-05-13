@@ -46,14 +46,14 @@ describe("shell-based shebang resolution", () => {
     mockExecute.mockResolvedValueOnce({
       code: 0,
       stdout:
-        "#!/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/venv/bin/python\n",
+        "#!/home/testuser/hermes-agent-2026.4.23/venv/bin/python\n",
       stderr: "",
     });
 
     const result = await resolveViaShell();
 
     expect(result).toBe(
-      "/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/hermes_cli",
+      "/home/testuser/hermes-agent-2026.4.23/hermes_cli",
     );
   });
 
@@ -89,7 +89,7 @@ describe("shell-based shebang resolution", () => {
     mockExecute.mockResolvedValueOnce({
       code: 0,
       stdout:
-        "#!/Users/dor/Downloads/Installers/hermes-agent-2026.4.23/venv/bin/python\n",
+        "#!/home/testuser/hermes-agent-2026.4.23/venv/bin/python\n",
       stderr: "",
     });
 
