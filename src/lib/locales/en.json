@@ -76,7 +76,7 @@
     "hermes": "Hermes",
     "claude": "Claude Code",
     "shell": "Shell",
-    "shellDesc": "Raw terminal (tmux ready)",
+    "shellDesc": "Raw terminal",
     "notFound": "not found. Please install it first."
   }
 }

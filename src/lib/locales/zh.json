@@ -76,7 +76,7 @@
     "hermes": "Hermes",
     "claude": "Claude Code",
     "shell": "终端",
-    "shellDesc": "原始终端（支持 tmux）",
+    "shellDesc": "原始终端",
     "notFound": "未找到，请先安装。"
   }
 }
