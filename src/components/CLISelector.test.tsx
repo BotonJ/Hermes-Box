@@ -36,10 +36,10 @@ describe("CLISelector", () => {
     expect(onSelect).toHaveBeenCalledWith("hermes", "/usr/local/bin/hermes");
   });
 
-  it("hides not-found CLI cards", () => {
+  it("shows all CLI cards even when not detected", () => {
     render(<CLISelector results={partialResults} onSelect={vi.fn()} />);
 
-    expect(screen.queryByText("Claude Code")).toBeNull();
+    expect(screen.getByText("Claude Code")).not.toBeNull();
     expect(screen.getByText("Hermes")).not.toBeNull();
   });
 

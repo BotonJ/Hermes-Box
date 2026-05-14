@@ -29,10 +29,8 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
     onSelect("shell", "/bin/zsh");
   }
 
-  // Built-in CLIs: show only if detected. Custom CLIs: always show.
-  const detected = results.filter((r) => r.found);
-  const undetectedCustom = results.filter((r) => !r.found && customIds.has(r.id));
-  const allVisible = [...detected, ...undetectedCustom];
+  // All CLIs always visible — detected ones use resolved path, others fall back to command name.
+  const allVisible = results;
 
   return (
     <div class={styles.selector}>
