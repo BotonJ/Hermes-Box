@@ -2,6 +2,8 @@
 
 Cross-platform desktop panel for AI CLIs. Run Claude Code, Hermes Agent, and multiple agents or shell tabs in one window with built-in approval interception.
 
+**[中文版](README_zh.md)**
+
 ## Features
 
 ![Dark Theme](public/images/start-dark.png)
