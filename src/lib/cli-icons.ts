@@ -18,12 +18,22 @@ const COMMAND_ICON_MAP: Record<string, string> = {
   deepseek: "deepseek",
 };
 
-export function getCLIIcon(id: string, command?: string): string {
+function normalizeCLIName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export function getCLIIcon(id: string, command?: string, label?: string): string {
   if (CLI_ICONS[id]) return CLI_ICONS[id];
   if (command) {
     const cmd = command.split("/").pop()!;
     const key = COMMAND_ICON_MAP[cmd];
     if (key && CLI_ICONS[key]) return CLI_ICONS[key];
+  }
+  if (label) {
+    const normalized = normalizeCLIName(label);
+    for (const [iconKey, iconPath] of Object.entries(CLI_ICONS)) {
+      if (normalized.includes(normalizeCLIName(iconKey))) return iconPath;
+    }
   }
   return CLI_ICONS.shell;
 }

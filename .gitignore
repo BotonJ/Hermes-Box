@@ -6,3 +6,16 @@ src-tauri/gen/
 *.swp
 *.swo
 *.tar.gz
+
+# Worklog and temporary files
+worklog/
+*.log
+*.tmp
+.console.txt
+tauri-plugin-liquid-glass/
+glass-theme/
+flexoki-light
+gruvbox-dark
+ghostty-atom-one-light
+ghostty-flexoki-light
+bridge/logs/

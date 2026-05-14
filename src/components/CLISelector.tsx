@@ -18,8 +18,6 @@ function buildFullRegistry(): CLIMeta[] {
 export function CLISelector({ results, onSelect }: CLISelectorProps) {
   useLocale();
   const fullRegistry = buildFullRegistry();
-  const customCLIs = getCustomCLIs();
-  const customIds = new Set(customCLIs.map((c) => c.id));
 
   function getMeta(id: string) {
     return fullRegistry.find((m) => m.id === id);
@@ -49,7 +47,7 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
                 onClick={() => onSelect(result.id, result.path ?? meta.commands[0])}
               >
                 <div class={styles.icon}>
-                  <img src={getCLIIcon(result.id, meta.commands[0])} alt={meta.label} />
+                  <img src={getCLIIcon(result.id, meta.commands[0], meta.label)} alt={meta.label} />
                 </div>
                 <div class={styles.info}>
                   <h2 class={styles.label}>{meta.label}</h2>

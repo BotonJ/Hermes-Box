@@ -116,7 +116,7 @@ export function TabBar({
             >
               {tab.locked && <span class={styles.lockIcon} aria-hidden="true">🔒</span>}
               <span class={styles.tabIcon}>
-                <img src={getCLIIcon(tab.cliId, tab.command)} alt={tab.cliId} />
+                <img src={getCLIIcon(tab.cliId, tab.command, tab.title)} alt={tab.cliId} />
               </span>
               {isRenaming ? (
                 <input

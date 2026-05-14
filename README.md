@@ -2,7 +2,12 @@
 
 Cross-platform desktop panel for AI CLIs. Run Claude Code, Hermes Agent, and multiple shell tabs in one window with built-in approval interception.
 
+**[中文版](README_zh.md)**
+
 ## Features
+
+![Dark Theme](public/images/interface-dark.png)
+![Light Theme](public/images/interface-light.png)
 
 - **Multi-tab terminal** — Run multiple AI CLIs and shells in tabs, with lazy PTY spawn for performance
 - **CLI selector** — Built-in detection for Claude Code, Hermes, OpenClaw, Codex, OpenCode, and custom CLI tools
