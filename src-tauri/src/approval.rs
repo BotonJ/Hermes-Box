@@ -126,6 +126,14 @@ pub fn start_watcher(app: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     cleanup_stale_files(&pending_dir, std::time::Duration::from_secs(120));
 
+    // Emit events for any approval files that already exist at startup.
+    // The filesystem watcher only fires on new create/rename events, so
+    // files written while the app was closed would otherwise be missed.
+    for req in scan_pending_dir(&pending_dir) {
+        let _ = app.emit("approval-request", &req);
+        let _ = app.emit("show-main-window", ());
+    }
+
     std::thread::spawn(move || {
         let app = app.clone();
         let pending_dir = pending_dir.clone();

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "preact/hooks";
 import { t } from "../lib/i18n";
-import { CLI_ICONS } from "../lib/cli-icons";
+import { getCLIIcon } from "../lib/cli-icons";
 import { useLocale } from "../lib/use-locale";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./TabBar.module.css";
@@ -116,9 +116,7 @@ export function TabBar({
             >
               {tab.locked && <span class={styles.lockIcon} aria-hidden="true">🔒</span>}
               <span class={styles.tabIcon}>
-                {tab.cliId in CLI_ICONS
-                  ? <img src={CLI_ICONS[tab.cliId]} alt={tab.cliId} />
-                  : ">"}
+                <img src={getCLIIcon(tab.cliId, tab.command)} alt={tab.cliId} />
               </span>
               {isRenaming ? (
                 <input

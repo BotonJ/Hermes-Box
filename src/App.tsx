@@ -242,7 +242,8 @@ export function App() {
       return;
     }
 
-    const meta = CLI_REGISTRY.find((m) => m.id === cliId);
+    const allMeta = [...CLI_REGISTRY, ...customCLIsToMeta(getCustomCLIs())];
+    const meta = allMeta.find((m) => m.id === cliId);
     const execCommand = meta?.execArgs ? `${cliPath} ${meta.execArgs}` : cliPath;
     // Ensure hermes color files are up-to-date before spawning PTY.
     // Corrects stale matchMedia values from WKWebView startup.

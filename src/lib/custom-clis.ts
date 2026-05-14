@@ -50,7 +50,14 @@ export function customCLIsToMeta(customs: CustomCLI[]): CLIMeta[] {
     description: `Custom: ${c.command}${c.args ? ` ${c.args}` : ""}`,
     commands: [c.command],
     execArgs: c.args,
-    fallbackPaths: { darwin: [], windows: [] },
+    fallbackPaths: {
+      darwin: [
+        `/usr/local/bin/${c.command}`,
+        `/opt/homebrew/bin/${c.command}`,
+        `$HOME/.local/bin/${c.command}`,
+      ],
+      windows: [`${c.command}.exe`],
+    },
   }));
 }
 

@@ -101,7 +101,8 @@ export async function detectCLI(
     .map((p) => p.replace("$HOME", home ?? ""))
     .filter((p) => !p.startsWith("/."));
   for (const p of fallbacks) {
-    if (await fileExists(p)) {
+    const exists = await fileExists(p);
+    if (exists) {
       return { id: meta.id, found: true, path: p };
     }
   }

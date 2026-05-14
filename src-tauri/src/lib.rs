@@ -8,6 +8,7 @@ use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 
 pub fn run() {
+    eprintln!("[HermesBox] Starting application...");
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(w) = app.get_webview_window("main") {
@@ -39,12 +40,17 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            eprintln!("[HermesBox] Setup starting...");
             pty::manage_pty_state(app);
+            eprintln!("[HermesBox] PTY state initialized");
 
             #[cfg(desktop)]
             {
+                eprintln!("[HermesBox] Creating tray...");
                 tray::create_tray(app.handle())?;
+                eprintln!("[HermesBox] Starting approval watcher...");
                 approval::start_watcher(app.handle().clone())?;
+                eprintln!("[HermesBox] Approval watcher started");
 
                 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
 
@@ -96,6 +102,7 @@ pub fn run() {
                     }
                 }
             }
+            eprintln!("[HermesBox] Setup complete");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -114,4 +121,5 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+    eprintln!("[HermesBox] Application exited");
 }

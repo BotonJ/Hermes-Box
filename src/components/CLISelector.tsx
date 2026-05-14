@@ -1,7 +1,7 @@
 import { CLI_REGISTRY } from "../lib/cli-detect";
 import type { DetectResult, CLIMeta } from "../lib/cli-detect";
 import { getCustomCLIs, customCLIsToMeta } from "../lib/custom-clis";
-import { CLI_ICONS } from "../lib/cli-icons";
+import { getCLIIcon } from "../lib/cli-icons";
 import { t } from "../lib/i18n";
 import { useLocale } from "../lib/use-locale";
 import styles from "./CLISelector.module.css";
@@ -18,6 +18,8 @@ function buildFullRegistry(): CLIMeta[] {
 export function CLISelector({ results, onSelect }: CLISelectorProps) {
   useLocale();
   const fullRegistry = buildFullRegistry();
+  const customCLIs = getCustomCLIs();
+  const customIds = new Set(customCLIs.map((c) => c.id));
 
   function getMeta(id: string) {
     return fullRegistry.find((m) => m.id === id);
@@ -27,15 +29,18 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
     onSelect("shell", "/bin/zsh");
   }
 
+  // Built-in CLIs: show only if detected. Custom CLIs: always show.
+  const detected = results.filter((r) => r.found);
+  const undetectedCustom = results.filter((r) => !r.found && customIds.has(r.id));
+  const allVisible = [...detected, ...undetectedCustom];
+
   return (
     <div class={styles.selector}>
       <div class={styles.header}>
         <h1 class={styles.heading}>{t("selector.heading")}</h1>
       </div>
       <div class={styles.grid}>
-        {results
-          .filter((r) => r.found)
-          .map((result) => {
+        {allVisible.map((result) => {
             const meta = getMeta(result.id);
             if (!meta) return null;
 
@@ -43,10 +48,10 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
               <button
                 key={result.id}
                 class={styles.card}
-                onClick={() => onSelect(result.id, result.path!)}
+                onClick={() => onSelect(result.id, result.path ?? meta.commands[0])}
               >
                 <div class={styles.icon}>
-                  <img src={CLI_ICONS[result.id] ?? CLI_ICONS.shell} alt={meta.label} />
+                  <img src={getCLIIcon(result.id, meta.commands[0])} alt={meta.label} />
                 </div>
                 <div class={styles.info}>
                   <h2 class={styles.label}>{meta.label}</h2>
@@ -60,7 +65,7 @@ export function CLISelector({ results, onSelect }: CLISelectorProps) {
           class={styles.card}
           onClick={handleSelectShell}
         >
-          <div class={styles.icon}><img src={CLI_ICONS.shell} alt="Shell" /></div>
+          <div class={styles.icon}><img src={getCLIIcon("shell")} alt="Shell" /></div>
           <div class={styles.info}>
             <h2 class={styles.label}>{t("cli.shell")}</h2>
             <p class={styles.description}>{t("cli.shellDesc")}</p>
